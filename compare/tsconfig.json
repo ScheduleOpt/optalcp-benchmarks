@@ -1,0 +1,20 @@
+{
+  "compilerOptions": {
+    "target": "esnext",
+    "strict": true,
+    "moduleResolution": "node",
+    "module": "es2020",
+    "allowSyntheticDefaultImports": true,
+    "noUnusedParameters": true,
+    "noImplicitReturns": true,
+    "noFallthroughCasesInSwitch": true,
+    "sourceMap": false,
+    "esModuleInterop": true
+  },
+  "include": [
+    "**/*.mts"
+  ],
+  "exclude": [
+    "node_modules"
+  ]
+}

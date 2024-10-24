@@ -1,0 +1,18 @@
+{
+  "extends": "@tsconfig/node20/tsconfig.json",
+  "compilerOptions": {
+    "allowSyntheticDefaultImports": true,
+    "noUnusedParameters": true,
+    "noImplicitReturns": true,
+    "noFallthroughCasesInSwitch": true,
+    "sourceMap": true,
+    "moduleDetection": "force"
+  },
+  "include": [
+    "benchmarks/**/*.mts",
+    "utils/*.mts"
+  ],
+  "exclude": [
+    "node_modules"
+  ]
+}

@@ -1,0 +1,9 @@
+**/*.js
+**/*.mjs
+**/*.log
+**/*.cpo
+**/*.json
+!**/data/**/*.json
+!**/results/**/*.json
+tmp
+*.sqlite3

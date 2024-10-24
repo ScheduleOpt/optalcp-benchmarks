@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<head>
+  <!-- Style for sortable npm package: -->
+  <link href="style.css" rel="stylesheet" type="text/css">
+  <style>
+   body {
+      font-family: Arial, Helvetica, sans-serif;
+    }
+    *:not(li)>ul {
+      /* Top level ul */
+      margin-bottom: 2em;
+    }
+    h2 {
+      margin-top: 2em;
+    }
+    table, th, td {
+      /* border: 1px solid #606060; */
+      border-collapse: collapse;
+      padding: 5px;
+    }
+    #SummaryTable table, #SummaryTable th, #SummaryTable td {
+      border: 1px solid #606060;
+      border-collapse: collapse;
+      padding: 5px;
+    }
+    #SummaryTable table {
+      border: 2px solid black;
+    }
+    #SummaryTable th {
+      background: #d8d8d8d8;
+    }
+    #DetailedTable th {
+      /* background: #c8c8c8c8; */
+      background: #bbb;
+      /* border: 1px solid black; */
+      color: black;
+      font-weight: bold;
+      opacity: 1;
+    }
+    #DetailedTable tr:nth-child(even) {
+      background: #d8d8d8;
+    }
+    table td + td { border-left:1px solid #c0c0c0; }
+    /* Scrollable table inspired by https://stackoverflow.com/questions/21168521/table-fixed-header-and-scrollable-body */
+    .tableFixHead {
+      overflow: auto; /* make the table scrollable if height is more than 200 px  */
+      max-height: 65vh; /* gives an initial height in percentage of viewport height */
+    }
+    .tableFixHead thead th {
+      position: sticky; /* make the table heads sticky */
+      top: 0px; /* table head will be placed from the top of the table and sticks to it */
+      z-index: 1;
+    }
+    .twoColumns {
+      display: flex;
+      flex-direction: row;
+      flex-wrap: wrap;
+      gap: 100px;
+    }
+  </style>
+</head>
+
+<body>
+
+<h1>HEADER</h1>
+
+<div id="loader"><h2>Loading data...</h2></div>
+<div id="loadedContent" style="display:none;">
+
+  <div id="Errors"></div>
+
+  <h2>Summary</h2>
+  <div id="Summary"></div>
+
+  <div class="twoColumns">
+    <div>
+      <h2>Objective values</h2>
+      <div id="ObjectiveDiff"></div>
+    </div>
+    <div>
+      <h2>Relative objective values</h2>
+      <div id="ObjectiveRelativeDiff"></div>
+    </div>
+  </div>
+
+  <div class="twoColumns">
+    <div>
+      <h2>Total duration</h2>
+      <div id="DurationDiff"></div>
+    </div>
+    <div>
+      <h2>Relative duration</h2>
+      <div id="DurationRelativeDiff"></div>
+    </div>
+  </div>
+
+  <h2>Detailed comparison</h2>
+  <div id="DetailedTable" class="tableFixHead"></div>
+
+  <div class="twoColumns">
+    <div>
+      <h2>Number of branches</h2>
+      <div id="BranchesDiff"></div>
+    </div>
+    <div>
+      <h2>Relative number of branches</h2>
+      <div id="BranchesRelativeDiff"></div>
+    </div>
+  </div>
+
+  <div class="twoColumns">
+    <div>
+      <h2>Number of branches per second</h2>
+      <div id="BranchesPerSecDiff"></div>
+    </div>
+    <div>
+      <h2>Relative number of branches per second</h2>
+      <div id="BranchesPerSecRelativeDiff"></div>
+    </div>
+  </div>
+
+  <div id="LNSStepsDiv" class="twoColumns">
+    <div>
+      <h2>LNS steps</h2>
+      <div id="LNSStepsDiff"></div>
+    </div>
+    <div>
+      <h2>Relative LNS steps</h2>
+      <div id="LNSStepsRelativeDiff"></div>
+    </div>
+  </div>
+
+  <div id="RestartsDiv" class="twoColumns">
+    <div>
+      <h2>Restarts</h2>
+      <div id="RestartsDiff"></div>
+    </div>
+    <div>
+      <h2>Relative restarts</h2>
+      <div id="RestartsRelativeDiff"></div>
+    </div>
+  </div>
+
+</div>
+
+<script src="main.js" charset="utf8"></script>
+<script charset="utf8">window.scheduleopt.main(PARAMETERS);</script>
+<script>
+  document.getElementById("loader").style.display = "none";
+  document.getElementById("loadedContent").style.display = "block";
+</script>
+
+</body>
