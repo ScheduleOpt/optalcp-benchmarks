@@ -10,11 +10,13 @@ Benchmarks include:
 * [Flexible Jobshop](benchmarks/flexible-jobshop/)
 * [Openshop](benchmarks/openshop/)
 * [(Non-permutation) Flowshop](benchmarks/non-permutation-flowshop/)
+* [Permutation Flowshop](benchmarks/permutation-flowshop/)
 * [RCPSP](benchmarks/rcpsp/)
 * [Multi-Mode RCPSP](benchmarks/mmrcpsp/)
 * [RCPSP Max](benchmarks/rcpsp-max/)
 * [RCPSP CPR](benchmarks/rcpsp-cpr/)
 * [Distributed Flowshop](benchmarks/distributed-flowshop)
+* [TSP](benchmarks/tsp)
 
 For each benchmark, there are usually [OptalCP](https://www.optalcp.com) and [IBM ILOG CPLEX CP Optimizer](https://www.ibm.com/products/ilog-cplex-optimization-studio/cplex-cp-optimizer) results (directories `benchmarks/*/results`) and also reference values from the literature (directories `benchmark/*/references`).
 
