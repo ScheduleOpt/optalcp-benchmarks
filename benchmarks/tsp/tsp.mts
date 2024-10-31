@@ -1,6 +1,11 @@
 import { strict as assert } from 'assert';
 import * as CP from '@scheduleopt/optalcp';
 import * as utils from '../../utils/utils.mjs';
+import * as fs from 'node:fs';
+
+// Command-line options:
+let triangularCorrection = false;
+let breakDirectionSymmetry = false;
 
 // An auxiliary function for the GEO distance function.
 function latitudeLongitude(x: number, y: number): [number, number] {
@@ -130,17 +135,89 @@ function defineModel(filename: string): CP.Model {
     }
   }
 
+  if (triangularCorrection) {
+    // Try to find a .corr or .corr.gz file with the same name as the input file:
+    let corrFilename = filename.replace(/\.tsp(\.gz)?$/, '.corr');
+    if (!fs.existsSync(corrFilename))
+      corrFilename += '.gz';
+    if (!fs.existsSync(corrFilename)) {
+      console.error(`Triangular correction file not found: ${corrFilename}`);
+      process.exit();
+    }
+    let corrLines = utils.readFile(corrFilename).trim().split('\n');
+    if (!corrLines[0].match(/^NONE *$/)) {
+      // The file contains a line for each node. The line contains corrections
+      // for the distances from the node to all nodes with the bigger index.
+      // We use the fact that the transition matrix is symmetric.
+      assert(corrLines.length == nbNodes - 1, "Invalid correction file format (number of lines)");
+      for (let i = 0; i < nbNodes - 1; i++) {
+        let corrections = corrLines[i].trim().split(/\s+/).map(Number);
+        assert(corrections.length == nbNodes - i - 1, "Invalid correction file format (number of corrections)");
+        for (let j = 0; j < corrections.length; j++) {
+          transitionMatrix[i][j + i + 1] -= corrections[j];
+          transitionMatrix[j + i + 1][i] -= corrections[j];
+        }
+      }
+    }
+  }
+
   let model = new CP.Model(utils.makeModelName('tsp', filename));
-  let intervals = Array.from({length: nbNodes}, (_, i) => model.intervalVar({ length: 0, name: `N_${i}` }));
+
+  // We're looking for a cycle that visits all nodes exactly once.  So we can
+  // chose in which node will start the cycle. Let's chose node 0.
+  let intervals = Array.from({ length: nbNodes }, (_, i) => model.intervalVar({ length: 0, name: `N_${i + 1}` }));
+  // Then, we have to return back to the node 0. So we need one more interval:
+  let last = model.intervalVar({ length: 0, name: 'last' });
+
+  // Nodes must be visited in a sequence, and fulfill the transition matrix.
+  // The last node will be constrained to be the last one, so it doesn't have to
+  // be part of the sequence.
   let sequence = model.sequenceVar(intervals);
   model.noOverlap(sequence, transitionMatrix);
-  model.max(intervals.map(itv => itv.end())).minimize();
+
+  // We always start at node 0:
+  intervals[0].setStart(0);
+
+  // The last node must be after all the other nodes, taking into account the transition matrix:
+  for (let i = 0; i < nbNodes; i++)
+    model.endBeforeStart(intervals[i], last, transitionMatrix[i][0]);
+
+  // The length of the cycle is the end of the last node:
+  model.minimize(last.end())
+
+  if (breakDirectionSymmetry && nbNodes > 2) {
+    // If we reverse the order of the nodes, the solution will be the same. So,
+    // we can break the symmetry by choosing any node and forcing it to be in
+    // the first half of the cycle.  Let's chose a node with the maximum
+    // distance from the node 0:
+    let maxDistance = 0;
+    let maxDistanceNode = 0;
+    for (let i = 1; i < nbNodes; i++) {
+      if (transitionMatrix[0][i] > maxDistance) {
+        maxDistance = transitionMatrix[0][i];
+        maxDistanceNode = i;
+      }
+    }
+    model.constraint(intervals[maxDistanceNode].end().times(2).le(last.end()));
+  }
 
   return model;
 }
 
 let params: CP.BenchmarkParameters = {
-  usage: "Usage: node tsp.js [OPTIONS] INPUT_FILE [INPUT_FILE2] .."
+  usage: "Usage: node tsp.mjs [--triangularCorrection] [--breakDirectionSymmetry] [OPTIONS] INPUT_FILE [INPUT_FILE2] .."
 };
 let restArgs = CP.parseSomeBenchmarkParameters(params);
+// Look for the optional parameters:
+let index = restArgs.indexOf("--triangularCorrection");
+if (index != -1) {
+  triangularCorrection = true;
+  restArgs.splice(index, 1);
+}
+index = restArgs.indexOf("--breakDirectionSymmetry");
+if (index != -1) {
+  breakDirectionSymmetry = true;
+  restArgs.splice(index, 1);
+}
+
 CP.benchmark(defineModel, restArgs, params);
