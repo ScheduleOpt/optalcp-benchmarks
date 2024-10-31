@@ -3,7 +3,7 @@ import * as CP from '@scheduleopt/optalcp';
 import * as utils from '../../utils/utils.mjs';
 import * as jobshopModeler from '../jobshop/modeler.mjs';
 
-let useRanks = false;
+let usePositions = false;
 let useSameSequence = true;
 
 function defineModel(filename: string): CP.Model {
@@ -39,11 +39,11 @@ function defineModel(filename: string): CP.Model {
 
   let model = new CP.Model(utils.makeModelName('permutation-flowshop', filename));
 
-  let rankVars: CP.IntVar[] = [];
-  if (useRanks) {
+  let positionVars: CP.IntVar[] = [];
+  if (usePositions) {
     // TODO:0 Auxiliary int vars?
     for (let i = 0; i < nbJobs; i++)
-      rankVars.push(model.intVar({ name: "rank" + (i + 1) }));
+      positionVars.push(model.intVar({ name: "position" + (i + 1) }));
   }
   // Current last operation for each job:
   let last: CP.IntervalVar[] = [];
@@ -62,9 +62,9 @@ function defineModel(filename: string): CP.Model {
     let seq = model.sequenceVar(machine);
     sequences.push(seq);
     model.noOverlap(seq);
-    if (useRanks) {
+    if (usePositions) {
       for (let i = 0; i < nbJobs; i++)
-        model.constraint(rankVars[i].eq(model._rank(machine[i], seq)));
+        model.constraint(positionVars[i].eq(model.position(machine[i], seq)));
     }
   }
 
@@ -88,7 +88,7 @@ function defineModel(filename: string): CP.Model {
 
 // Default parameter settings that can be overridden on command line:
 let params: CP.BenchmarkParameters = {
-  usage: "Usage: node permutation-flowshop.js [OPTIONS] INPUT_FILE1 [INPUT_FILE2] .."
+  usage: "Usage: node permutation-flowshop.mjs [OPTIONS] INPUT_FILE1 [INPUT_FILE2] .."
 };
 let restArgs = CP.parseSomeBenchmarkParameters(params);
 CP.benchmark(defineModel, restArgs, params);

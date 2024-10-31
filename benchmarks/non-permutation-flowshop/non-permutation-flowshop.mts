@@ -64,7 +64,7 @@ function defineModel(filename: string): CP.Model {
 
 // Default parameter settings that can be overridden on command line:
 let params: CP.BenchmarkParameters = {
-  usage: "Usage: node non-permutation-flowshop.js [OPTIONS] INPUT_FILE1 [INPUT_FILE2] .."
+  usage: "Usage: node non-permutation-flowshop.mjs [OPTIONS] INPUT_FILE1 [INPUT_FILE2] .."
 };
 let restArgs = CP.parseSomeBenchmarkParameters(params);
 CP.benchmark(defineModel, restArgs, params);

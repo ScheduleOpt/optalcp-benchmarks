@@ -157,7 +157,7 @@ function defineModel(filename: string) {
 
 // Default parameter settings that can be overridden on the command line:
 let params: CP.BenchmarkParameters = {
-  usage: "Usage: node rcpsp-max.js [OPTIONS] INPUT_FILE [INPUT_FILE2] .."
+  usage: "Usage: node rcpsp-max.mjs [OPTIONS] INPUT_FILE [INPUT_FILE2] .."
 };
 let restArgs = CP.parseSomeBenchmarkParameters(params);
 CP.benchmark(defineModel, restArgs, params);

@@ -16,7 +16,7 @@ function readModel(filename: string): CP.ProblemDefinition {
 }
 
 let params: CP.BenchmarkParameters = {
-  usage: "Usage: node solveJSONs.js [OPTIONS] INPUT_FILE1.json [INPUT_FILE2.json] .."
+  usage: "Usage: node solveJSONs.mjs [OPTIONS] INPUT_FILE1.json [INPUT_FILE2.json] .."
 };
 let restArgs = CP.parseSomeBenchmarkParameters(params);
 CP.benchmark(readModel, restArgs, params);

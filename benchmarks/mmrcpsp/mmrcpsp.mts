@@ -263,7 +263,7 @@ function defineModel(filename: string) {
 
 // Default parameter settings that can be overridden on command line:
 let params: CP.BenchmarkParameters = {
-  usage: "Usage: node mmrcpsp.js [OPTIONS] INPUT_FILE [INPUT_FILE2] .."
+  usage: "Usage: node mmrcpsp.mjs [OPTIONS] INPUT_FILE [INPUT_FILE2] .."
 };
 let restArgs = CP.parseSomeBenchmarkParameters(params);
 

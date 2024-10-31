@@ -188,7 +188,7 @@ async function heuristics(data: Data, bestMakespan: number): Promise<number> {
 }
 
 if (process.argv.length != 3) {
-  console.error("Usage: node jobshop-heuristics.js <filename>");
+  console.error("Usage: node jobshop-heuristics.mjs <filename>");
   process.exit(1);
 }
 let filename = process.argv[2];

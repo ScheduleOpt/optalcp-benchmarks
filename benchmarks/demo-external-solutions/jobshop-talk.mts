@@ -6,7 +6,7 @@ import * as CP from '@scheduleopt/optalcp';
 import * as jobshopModeler from '../jobshop/modeler.mjs';
 
 let params: CP.Parameters = {
-  usage: "Usage: node jobshop-talk.js [OPTIONS] INPUT_FILE"
+  usage: "Usage: node jobshop-talk.mjs [OPTIONS] INPUT_FILE"
 };
 
 let restArgs = CP.parseSomeParameters(params);

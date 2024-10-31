@@ -87,7 +87,7 @@ function defineModel(filename: string): CP.Model {
 
 // Default parameter settings that can be overridden on command line:
 let params: CP.BenchmarkParameters = {
-  usage: "Usage: node flexible-jobshop.js [OPTIONS] INPUT_FILE1 [INPUT_FILE2] .."
+  usage: "Usage: node flexible-jobshop.mjs [OPTIONS] INPUT_FILE1 [INPUT_FILE2] .."
 };
 let restArgs = CP.parseSomeBenchmarkParameters(params);
 CP.benchmark(defineModel, restArgs, params);

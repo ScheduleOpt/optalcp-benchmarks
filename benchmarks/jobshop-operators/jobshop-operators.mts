@@ -58,7 +58,7 @@ function defineModel(filename: string, nbOperators: number): CP.Model {
 
 // Default parameter settings that can be overridden on command line:
 let params: CP.BenchmarkParameters = {
-  usage: "Usage: node jobshop-operators.js --nbOperators n [OPTIONS] INPUT_FILE1 [INPUT_FILE2] .."
+  usage: "Usage: node jobshop-operators.mjs --nbOperators n [OPTIONS] INPUT_FILE1 [INPUT_FILE2] .."
 };
 let restArgs = CP.parseSomeBenchmarkParameters(params); // It also handles --help
 

@@ -52,7 +52,7 @@ function defineModel(filename: string): CP.Model {
 }
 
 let params: CP.BenchmarkParameters = {
-  usage: "Usage: node blocking-jobshop.js [OPTIONS] INPUT_FILE [INPUT_FILE2] .."
+  usage: "Usage: node blocking-jobshop.mjs [OPTIONS] INPUT_FILE [INPUT_FILE2] .."
 };
 let restArgs = CP.parseSomeBenchmarkParameters(params);
 CP.benchmark(defineModel, restArgs, params);

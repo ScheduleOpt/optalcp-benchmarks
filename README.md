@@ -41,17 +41,9 @@ Don't hesitate to contact `petr@vilim.eu`, create a pull request or [report an i
 
 ## Citation
 
-If you use this benchmark collection in your research, please cite it as:
-
-```bibtex
-@software{OptalCPBenchmarks,
-  title = {OptalCP Benchmark Collection},
-  author = {Vil{\'i}m, Petr and Pons, Diego Olivier Fernandez and others},
-  url = {https://github.com/ScheduleOpt/optalcp-benchmarks},
-}
-```
-
-You can add the date you accessed the repository (usually using the `urldate` field), cite only a specific benchmark, or add more authors.
+Please use the link "Cite this repository" on the right to get the citation in various formats (generated from the file [`CITATION.cff`](CITATION.cff)).
+Feel free to add authors or change their order, for example by considering Credits section in the `README.md` files of individual benchmarks. You can also cite only a specific benchmark.
+It is useful to add the date you accessed the repository (usually using the `urldate` field) or a git commit id.
 
 ## Installation
 

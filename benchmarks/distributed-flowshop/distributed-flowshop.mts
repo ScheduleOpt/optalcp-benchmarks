@@ -123,7 +123,7 @@ function defineModel(filename: string): CP.Model {
 }
 
 let params: CP.BenchmarkParameters = {
-  usage: "Usage: node distributed-flowshop.js [OPTIONS] INPUT_FILE1 [INPUT_FILE2] .."
+  usage: "Usage: node distributed-flowshop.mjs [OPTIONS] INPUT_FILE1 [INPUT_FILE2] .."
 };
 let restArgs = CP.parseSomeBenchmarkParameters(params);
 CP.benchmark(defineModel, restArgs, params);

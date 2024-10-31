@@ -65,7 +65,7 @@ export function defineModel(filename: string): CP.Model {
 
 // Default time limit unless specified on command line:
 let params = {
-  usage: "Usage: node jobshop.js [OPTIONS] INPUT_FILE1 [INPUT_FILE2] .."
+  usage: "Usage: node jobshop.mjs [OPTIONS] INPUT_FILE1 [INPUT_FILE2] .."
 };
 // Let CP parse the remaining options:
 let restArgs = CP.parseSomeBenchmarkParameters(params);
