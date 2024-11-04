@@ -3,8 +3,8 @@ import * as CP from '@scheduleopt/optalcp';
 import * as utils from '../../utils/utils.mjs';
 import * as jobshopModeler from '../jobshop/modeler.mjs';
 
-let usePositions = false;
-let useSameSequence = true;
+let usePositions = true;
+let useSameSequence = false;
 
 function defineModel(filename: string): CP.Model {
   let input = utils.readFileAsNumberArray(filename);
