@@ -17,6 +17,7 @@ Benchmarks include:
 * [RCPSP CPR](benchmarks/rcpsp-cpr/)
 * [Distributed Flowshop](benchmarks/distributed-flowshop)
 * [TSP](benchmarks/tsp)
+* [CVRP](benchmarks/cvrp)
 
 For each benchmark, there are usually [OptalCP](https://www.optalcp.com) and [IBM ILOG CPLEX CP Optimizer](https://www.ibm.com/products/ilog-cplex-optimization-studio/cplex-cp-optimizer) results (directories `benchmarks/*/results`) and also reference values from the literature (directories `benchmark/*/references`).
 
@@ -38,12 +39,6 @@ Any contribution you can make is welcome. In particular, we are looking for:
 * More instances of the existing benchmarks.
 
 Don't hesitate to contact `petr@vilim.eu`, create a pull request or [report an issue](https://github.com/ScheduleOpt/optalcp-benchmarks/issues).
-
-## Citation
-
-Please use the link "Cite this repository" on the right to get the citation in various formats (generated from the file [`CITATION.cff`](CITATION.cff)).
-Feel free to add authors or change their order, for example, by considering the Credits section in the `README.md` files of individual benchmarks. You can also cite only a specific benchmark.
-It is helpful to add into the citation the date you accessed the repository (usually using the `urldate` field) or a git commit id.
 
 ## Installation
 
@@ -218,3 +213,9 @@ Alternatively, the directory [`solveCPOs`](solveCPOs) provides a C++ source code
 ## Comparing the results
 
 Results stored in JSON files can be compared using the [`compare`](compare) utility. The utility generates static HTML pages such as [this comparison of OptalCP and CP Optimizer on Flexible Jobshop benchmark](https://optalcp.com/benchmarks/flexible-jobshop/main.html).
+
+## Citation
+
+Please use the link "Cite this repository" on the right to get the citation in various formats (generated from the file [`CITATION.cff`](CITATION.cff)).
+Feel free to add authors or change their order, for example, by considering the Credits section in the `README.md` files of individual benchmarks. You can also cite only a specific benchmark.
+It is helpful to add into the citation the date you accessed the repository (usually using the `urldate` field) or a git commit id.

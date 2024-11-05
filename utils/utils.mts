@@ -27,3 +27,70 @@ export function readFileAsNumberArray(filename: string): number[] {
 export function makeModelName(benchmarkName: string, filename: string): string {
   return benchmarkName + '_' + filename.replaceAll(/[/\\]/g, '_').replace(/^data_/, '').replace(/\.gz$/, '').replace(/\....?$/, '');
 }
+
+/**
+ * Get a boolean option from the command line arguments.
+ *
+ * @param option The option to look for, e.g. "--foo".
+ * @param restArgs Input/output argument. The remaining command line arguments, without "--foo" if present.
+ *
+ * The result is true if the option is present, false otherwise.
+ * The option does not take any value. I.e., we expect "--foo"
+ * in the arguments, not "--foo 1".
+ */
+export function getBoolOption(option: string, restArgs: string[]): boolean {
+  let index = restArgs.indexOf(option);
+  if (index != -1) {
+    restArgs.splice(index, 1);
+    return true;
+  }
+  return false;
+}
+
+/**
+ * Get a string option from the command line arguments.
+ *
+ * @param option The option to look for, e.g. "--foo".
+ * @param defaultValue The default value if the option is not present.
+ * @param restArgs Input/output argument. The remaining command line arguments, without "--foo xy" if present.
+ *
+ * The result is the value following the option in the arguments.
+ * If the option is not present, the default value is returned.
+ * The option takes a value. I.e., we expect "--foo xy".
+ */
+export function getStringOption(option: string, defaultValue: string, restArgs: string[]): string {
+  let index = restArgs.indexOf(option);
+  if (index == -1)
+    return defaultValue;
+  if (index + 1 == restArgs.length) {
+    console.error(`Missing value for option ${option}`);
+    process.exit(1);
+  }
+  let value = restArgs[index + 1];
+  restArgs.splice(index, 2);
+  return value;
+}
+
+/**
+ * Get an integer option from the command line arguments.
+ *
+ * @param option The option to look for, e.g. "--foo".
+ * @param defaultValue The default value if the option is not present.
+ * @param restArgs Input/output argument. The remaining command line arguments, without "--foo nn" if present.
+ *
+ * The result is the value following the option in the arguments.
+ * If the option is not present, the default value is returned.
+ * The option takes a value. I.e., we expect "--foo nn".
+ */
+export function getIntOption(option: string, defaultValue: number, restArgs: string[]): number {
+  let index = restArgs.indexOf(option);
+  if (index == -1)
+    return defaultValue;
+  if (index + 1 == restArgs.length) {
+    console.error(`Missing value for option ${option}`);
+    process.exit(1);
+  }
+  let value = parseInt(restArgs[index + 1]);
+  restArgs.splice(index, 2);
+  return value;
+}
