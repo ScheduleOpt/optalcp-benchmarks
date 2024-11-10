@@ -2,3 +2,5 @@
 **/*.js
 **/*.mjs
 **/*.map
+**/draft_*
+**/internal_*

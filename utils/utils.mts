@@ -94,3 +94,27 @@ export function getIntOption(option: string, defaultValue: number, restArgs: str
   restArgs.splice(index, 2);
   return value;
 }
+
+/**
+ * Get a float option from the command line arguments.
+ *
+ * @param option The option to look for, e.g. "--foo".
+ * @param defaultValue The default value if the option is not present.
+ * @param restArgs Input/output argument. The remaining command line arguments, without "--foo nn" if present.
+ *
+ * The result is the value following the option in the arguments.
+ * If the option is not present, the default value is returned.
+ * The option takes a value. I.e., we expect "--foo nn".
+ */
+export function getFloatOption(option: string, defaultValue: number, restArgs: string[]): number {
+  let index = restArgs.indexOf(option);
+  if (index == -1)
+    return defaultValue;
+  if (index + 1 == restArgs.length) {
+    console.error(`Missing value for option ${option}`);
+    process.exit(1);
+  }
+  let value = parseFloat(restArgs[index + 1]);
+  restArgs.splice(index, 2);
+  return value;
+}

@@ -10,7 +10,7 @@ let checkDirectionSymmetry = false;
 let breakDirectionSymmetry = false;
 let breakVehicleSymmetry = false;
 let forcedNbVehicles = 0; // 0 means not forced
-let objective = "total";
+let objective = "path";
 
 function defineModel(filename: string): CP.Model {
   let { nbNodes, transitionMatrix, demands, capacity, depots, hasDirectionSymmetry } =
@@ -59,21 +59,25 @@ function defineModel(filename: string): CP.Model {
   let visits: CP.IntervalVar[][] = Array.from({ length: nbCustomers }, () => []);
   // For each vehicle, the time of the last visit:
   let endTimes: CP.IntExpr[] = [];
-  // For each vehicle, we compute the max index of a customer served:
+  // For each vehicle, we compute the max index of a customer served.
+  // Used only for symmetry-breaking.
   let maxServed: CP.IntExpr[] = [];
-  // Usage of each vehicle:
+  // Usage of each vehicle (how much capacity is used):
   let vehicleUsage: CP.IntExpr[] = [];
 
-  for (let c = 0; c < nbVehicles; c++) {
-    // For names, we index visits from 2 (because node 1 in the input file is the depot).
-    let myVisits = Array.from({ length: nbCustomers }, (_, i) => model.intervalVar({ length: visitDuration, name: `V_${c+1}_${i + 2}`, optional: true }));
+  for (let v = 0; v < nbVehicles; v++) {
+    // Visits done by the vehicle v:
+    let myVisits = Array.from({ length: nbCustomers }, (_, i) =>
+      model.intervalVar({ length: visitDuration, name: `V_${v + 1}_${i + 2}`, optional: true })
+    );
+    // Add myVisits to the visits array:
     for (let i = 0; i < nbCustomers; i++)
       visits[i].push(myVisits[i]);
 
     model.noOverlap(myVisits, customerMatrix);
 
     // Constraints for the depot:
-    let last = model.intervalVar({ length: 0, name: `last_${c}`, end: [0, horizon] });
+    let last = model.intervalVar({ length: 0, name: `last_${v + 1}`, end: [0, horizon] });
     for (let i = 0; i < nbCustomers; i++) {
       // We don't model the initial depot visit at all. It is known to be at time 0.
       // Instead, we increase startMin of all the visits by the transition matrix value:
@@ -143,7 +147,7 @@ function defineModel(filename: string): CP.Model {
   if (objective == "makespan")
     model.minimize(model.max(endTimes));
   else {
-    assert(objective == "total");
+    assert(objective == "path");
     model.minimize(model.sum(endTimes).minus(nbCustomers * visitDuration));
   }
 
@@ -153,14 +157,14 @@ function defineModel(filename: string): CP.Model {
 let params: CP.BenchmarkParameters = {
   usage: "Usage: node cvrp.mjs [OPTIONS] INPUT_FILE [INPUT_FILE2] ..\n\n" +
     "CVRP options:\n" +
-    "  --nbVehicles <number>        Number of vehicles\n" +
-    "  --objective <makespan|total> Objective function\n" +
-    "  --checkTriangularInequality  Warn if triangular inequality is not respected\n" +
-    "  --visitDuration <number>     Duration of each visit (the default is 0)\n" +
-    "  --forceCeil                  Round up during distance computation\n" +
-    "  --checkDirectionSymmetry     Warn if the directions are not symmetrical\n" +
-    "  --breakDirectionSymmetry     Break the direction symmetry of the solution\n" +
-    "  --breakVehicleSymmetry       Order vehicles by the minimum city visited"
+    "  --nbVehicles <number>       Number of vehicles\n" +
+    "  --objective <makespan|path> Objective function\n" +
+    "  --checkTriangularInequality Warn if triangular inequality is not respected\n" +
+    "  --visitDuration <number>    Duration of each visit (the default is 0)\n" +
+    "  --forceCeil                 Round up during distance computation\n" +
+    "  --checkDirectionSymmetry    Warn if the directions are not symmetrical\n" +
+    "  --breakDirectionSymmetry    Break the direction symmetry of the solution\n" +
+    "  --breakVehicleSymmetry      Order vehicles by the maximum city visited"
 };
 
 let restArgs = CP.parseSomeBenchmarkParameters(params);
@@ -172,8 +176,8 @@ checkDirectionSymmetry = utils.getBoolOption("--checkDirectionSymmetry", restArg
 breakDirectionSymmetry = utils.getBoolOption("--breakDirectionSymmetry", restArgs);
 breakVehicleSymmetry = utils.getBoolOption("--breakVehicleSymmetry", restArgs);
 objective = utils.getStringOption("--objective", objective, restArgs);
-if (objective != "makespan" && objective != "total") {
-  console.error("Invalid value for --objective. Could be only 'makespan' or 'total'");
+if (objective != "makespan" && objective != "path") {
+  console.error("Invalid value for --objective. Could be only 'makespan' or 'path'");
   process.exit(1);
 }
 

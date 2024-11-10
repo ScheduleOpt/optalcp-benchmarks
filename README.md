@@ -16,8 +16,9 @@ Benchmarks include:
 * [RCPSP Max](benchmarks/rcpsp-max/)
 * [RCPSP CPR](benchmarks/rcpsp-cpr/)
 * [Distributed Flowshop](benchmarks/distributed-flowshop)
-* [TSP](benchmarks/tsp)
-* [CVRP](benchmarks/cvrp)
+* [Traveling Salesman Problem](benchmarks/tsp)
+* [Capacitated VRP](benchmarks/cvrp)
+* [VRP with Time Windows](benchmarks/vrp-tw)
 
 For each benchmark, there are usually [OptalCP](https://www.optalcp.com) and [IBM ILOG CPLEX CP Optimizer](https://www.ibm.com/products/ilog-cplex-optimization-studio/cplex-cp-optimizer) results (directories `benchmarks/*/results`) and also reference values from the literature (directories `benchmark/*/references`).
 
@@ -25,24 +26,24 @@ Visualizations of the results contained in this repository can be found [here](h
 
 ## License
 
-This collection of benchmarks is open source under the MIT license (although [OptalCP](https://www.optalcp.com) itself isn't open source).
+This collection of benchmarks is open source under the MIT license (although [OptalCP](https://www.optalcp.com) itself is not open source).
 
-Benchmark data in directories `benchmarks/*/data` is taken from various sources listed in `README.md` files in these directories. We don't claim any rights to these data, please consider them a mirror of the existing sources. Similarly, for the best-known lower and upper bounds and other benchmark results in directories `benchmarks/*/reference.`
+Benchmark data in directories `benchmarks/*/data` is taken from various sources listed in `README.md` files in these directories. We do not claim any rights to these data; please consider them a mirror of the existing sources. Similarly, for the best-known lower and upper bounds and other benchmark results in directories `benchmarks/*/reference.`
 
 ## Contributing
 
-Any contribution you can make is welcome. In particular, we are looking for:
+Any contribution is welcome. In particular, we are looking for:
 
 * New benchmark suggestions.
 * Links to research papers with benchmarks.
 * More results for existing benchmarks (best known or improved bounds, historical results).
 * More instances of the existing benchmarks.
 
-Don't hesitate to contact `petr@vilim.eu`, create a pull request or [report an issue](https://github.com/ScheduleOpt/optalcp-benchmarks/issues).
+Do not hesitate to contact `petr@vilim.eu`, create a pull request, or [report an issue](https://github.com/ScheduleOpt/optalcp-benchmarks/issues).
 
 ## Installation
 
-First, you need to install [Node.js](https://nodejs.org/) and [git](https://git-scm.com/). Then, on the command line:
+First,  install [Node.js](https://nodejs.org/) and [git](https://git-scm.com/). Then, on the command line:
 
 ```sh
 git clone https://github.com/ScheduleOpt/optalcp-benchmarks.git
@@ -53,7 +54,7 @@ npx tsc
 
 The commands above will copy the repository (command `git clone`), install necessary npm packages into `optalcp-benchmarks/node-modules` (command `npm install`), and finally compile TypeScript files into JavaScript (command `npx tsc`).
 
-Note that the `npm install` command also installs the preview version of [OptalCP solver](https://www.optalcp.com/). The preview version is enough, it can solve all the benchmarks. However, the preview version reports only objective values, not values of the individual variables. If you can access the full version, you can install it using `npm install` instead of the preview version.
+Note that the `npm install` command also installs the preview version of [OptalCP solver](https://www.optalcp.com/). The preview version is enough; it can solve all the benchmarks. However, the preview version reports only objective values, not values of the individual variables. If you can access the full version, you can install it using `npm install` instead of the preview version.
 
 ## Running a single benchmark instance
 
@@ -118,14 +119,14 @@ All [engine parameters](https://optalcp.com/docs/api/type-aliases/Parameters) an
   * `FDS` (Failure-Directed Search) is suitable for optimality proofs,
   * `FDSLB` iteratively proves better and better lower bounds,
   * `SetTimes` is a basic search that constructs the solution chronologically.
-* Propagation levels for individual types of constraints. A higher level means a more complex algorithm and more propagation but also more time spent on the propagation. Basic propagation levels are usually enough for `LNS` search type. On the other hand, `FDS` works better with higher propagation levels. Propagation levels are:
+* Propagation levels for individual types of constraints. A higher level means a more complex algorithm and more propagation but also more time spent on the propagation. Basic propagation levels are usually enough for the `LNS` search type. On the other hand, `FDS` works better with higher propagation levels. Propagation levels are:
   * `--noOverlapPropgationLevel 1-4`. The default is 2.
   * `--cumulPropagationLevel 1-3`. The default is 1.
   * `--reservoirPropagationLevel 1-2`. The default is 1.
 
 ### Parameters for individual workers
 
-Engine parameters can also be set for individual workers. The syntax is `--workerN.param value`, where `N` is a worker number (starting from 0). Workers cooperate by sharing information about the best solution found so far. A combination of multiple search types usually works better than a single search type. For example, to run `FDS` search on worker 0 with more propagation and `LNS` search (the default) on the second worker, use the following command line:
+Engine parameters can also be set for individual workers. The syntax is `--workerN.param value`, where `N` is a worker number (starting from 0). Workers cooperate by sharing information about the best solution found so far. Combining multiple search types usually works better than a single search type. For example, to run the `FDS` search on worker 0 with more propagation and the `LNS` search (the default) on the second worker, use the following command line:
 
 ```sh
 node jobshop.mjs data/la17.txt --nbWorkers 2 --worker0.searchType fds --worker0.noOverlapPropagationLevel 4
@@ -133,7 +134,7 @@ node jobshop.mjs data/la17.txt --nbWorkers 2 --worker0.searchType fds --worker0.
 
 ## Running multiple benchmarks
 
-Besides running each benchmark instance separately, running multiple instances (of the same benchmark) in a sequence is also possible. Just provide multiple data files on the command line. For example, let's run nine jobshop instances `la0*`:
+Besides running each benchmark instance separately, running multiple instances (of the same benchmark) in a sequence is also possible. Just provide multiple data files on the command line. For example, let us run nine jobshop instances `la0*`:
 
 ```sh
 node jobshop.mjs data/la0*.txt --nbWorkers 2 --worker0.searchType fds --worker0.noOverlapPropagationLevel 4
@@ -170,7 +171,7 @@ On a CPU with enough cores, multiple benchmarks can run in parallel. For example
 ```sh
 node jobshop.mjs data/la3*.txt --nbParallelRuns 5 --nbWorkers 2 --worker0.searchType fds --worker0.noOverlapPropagationLevel 4
 ```
-In this case, as individual instances run in parallel, they don't have to finish in the same order as they were started. As a result, the order of the models in the output does not have to be the same as the order in the command line.
+In this case, as individual instances run in parallel, they do not have to finish in the same order as they were started. As a result, the order of the models in the output does not have to be the same as the order in the command line.
 
 ## Collecting the results
 
@@ -200,7 +201,7 @@ Note that the parameters stored in the file can be overridden. The script `utils
 
 ## Running benchmarks with CP Optimizer
 
-Benchmark models can also be exported into a text format that is very similar to the `.cpo` file format used by [IBM ILOG CPLEX CP Optimizer](https://www.ibm.com/products/ilog-cplex-optimization-studio/cplex-cp-optimizer). The exported file is not guaranteed to be the correct `.cpo` file as OptalCP and CP Optimizer languages are slightly different (for example, OptalCP supports optional integer expressions, but CP Optimizer doesn't). However, for the current benchmarks, the export works well. To export a model, use the `--exportTxt` option:
+Benchmark models can also be exported into a text format that is very similar to the `.cpo` file format used by [IBM ILOG CPLEX CP Optimizer](https://www.ibm.com/products/ilog-cplex-optimization-studio/cplex-cp-optimizer). The exported file is not guaranteed to be the correct `.cpo` file as OptalCP and CP Optimizer languages are slightly different (for example, OptalCP supports optional integer expressions, but CP Optimizer does not). However, for the current benchmarks, the export works well. To export a model, use the `--exportTxt` option:
 
 ```sh
 node jobshop.mjs data/la17.txt --exportTxt la17.cpo --dontSolve
@@ -212,10 +213,11 @@ Alternatively, the directory [`solveCPOs`](solveCPOs) provides a C++ source code
 
 ## Comparing the results
 
-Results stored in JSON files can be compared using the [`compare`](compare) utility. The utility generates static HTML pages such as [this comparison of OptalCP and CP Optimizer on Flexible Jobshop benchmark](https://optalcp.com/benchmarks/flexible-jobshop/main.html).
+The [`compare`](compare) utility can compare results stored in JSON files. The utility generates static HTML pages such as [this comparison of OptalCP and CP Optimizer on Flexible Jobshop benchmark](https://optalcp.com/benchmarks/flexible-jobshop/main.html).
 
 ## Citation
 
 Please use the link "Cite this repository" on the right to get the citation in various formats (generated from the file [`CITATION.cff`](CITATION.cff)).
-Feel free to add authors or change their order, for example, by considering the Credits section in the `README.md` files of individual benchmarks. You can also cite only a specific benchmark.
-It is helpful to add into the citation the date you accessed the repository (usually using the `urldate` field) or a git commit id.
+Feel free to add authors or change their order, for example, by considering the Credits section in the `README.md` files of individual benchmarks. It is also possible to cite only a specific benchmark.
+It is helpful to add the date the repository was accessed (usually using the `urldate` field) or a git commit id.
+
