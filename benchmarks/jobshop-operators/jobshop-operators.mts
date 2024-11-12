@@ -27,7 +27,7 @@ function defineModel(filename: string, nbOperators: number): CP.Model {
       // Create a new operation:
       const machineId = input.shift() as number;
       const duration = input.shift() as number;
-      let operation = model.intervalVar().setLength(duration).setName("J" + (i + 1) + "O" + (j + 1) + "M" + machineId);
+      let operation = model.intervalVar({ length: duration, name: `J${i + 1}O${j + 1}M${machineId}` });
       // Operation requires some machine:
       machines[machineId].push(operation);
       // And it requires an operator:

@@ -38,7 +38,7 @@ function defineModelRCP(filename: string) {
   // Create interval variables
   let jobs: CP.IntervalVar[] = [];
   for (let j = 0; j < nbRealJobs; j++) {
-    let itv = model.intervalVar().setName("T" + (j + 1));
+    let itv = model.intervalVar({ name: `T${j + 1}` });
     jobs.push(itv);
   }
 
@@ -217,7 +217,7 @@ function defineModelSM(filename: string) {
   // Create interval variables
   let jobs: CP.IntervalVar[] = [];
   for (let j = 0; j < nbRealJobs; j++) {
-    let itv = model.intervalVar().setName("T" + (j + 1));
+    let itv = model.intervalVar({ name: `T${j + 1}` });
     jobs.push(itv);
   }
 

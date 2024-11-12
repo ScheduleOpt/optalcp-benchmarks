@@ -25,7 +25,7 @@ function defineModel(filename: string): CP.Model {
   // can reuse function defineModel from jobshop/jobshop.ts:
   let hasMachineIDs: boolean = (input[0] == 0);
   if (hasMachineIDs) {
-    // TODO:0
+    // TODO:
     console.error("Not implemented: OR-Library-like format for permutation FlowShop.");
     process.exit(1);
     let model = jobshopModeler.defineModel(filename);
@@ -41,7 +41,6 @@ function defineModel(filename: string): CP.Model {
 
   let positionVars: CP.IntVar[] = [];
   if (usePositions) {
-    // TODO:0 Auxiliary int vars?
     for (let i = 0; i < nbJobs; i++)
       positionVars.push(model.intVar({ name: "position" + (i + 1) }));
   }
@@ -53,7 +52,7 @@ function defineModel(filename: string): CP.Model {
     let machine: CP.IntervalVar[] = [];
     for (let i = 0; i < nbJobs; i++) {
       const duration = input.shift() as number;
-      let operation = model.intervalVar().setLength(duration).setName("J" + (i + 1) + "M" + (j + 1));
+      let operation = model.intervalVar({ length: duration, name: `J${i + 1}M${j + 1}` });
       machine.push(operation);
       if (last[i])
         last[i].endBeforeStart(operation);

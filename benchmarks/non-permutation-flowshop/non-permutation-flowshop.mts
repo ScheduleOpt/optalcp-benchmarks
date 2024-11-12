@@ -40,7 +40,7 @@ function defineModel(filename: string): CP.Model {
     for (let i = 0; i < nbJobs; i++) {
       // Previous task in the job:
       const duration = input.shift() as number;
-      let operation = model.intervalVar().setLength(duration).setName("J" + (i + 1) + "M" + (j + 1));
+      let operation = model.intervalVar({length: duration, name: `J${i + 1}M${j + 1}`});
       machine.push(operation);
       if (last[i])
         last[i].endBeforeStart(operation);

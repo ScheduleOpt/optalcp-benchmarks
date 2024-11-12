@@ -44,7 +44,7 @@ function defineModel(filename: string): CP.Model {
     let prev: CP.IntervalVar | undefined = undefined;
     for (let j = 0; j < nbOperations; j++) {
       // Create a new operation (master of alternative constraint):
-      let operation = model.intervalVar().setName("J" + (i + 1) + "O" + (j + 1));
+      let operation = model.intervalVar({ name: `J${i + 1}O${j + 1}` });
       let nbModes = input.shift() as number;
       let modes: CP.IntervalVar[] = [];
       for (let k = 0; k < nbModes; k++) {

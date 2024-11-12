@@ -22,7 +22,7 @@ function defineModel(filename: string) {
   // precedences starting at the given job:
   let maxDelayAfter: number[] = [];
   for (let j = 0; j < nbRealJobs; j++) {
-    let itv = model.intervalVar().setName("T" + (j + 1));
+    let itv = model.intervalVar({ name: `T${j + 1}` });
     jobs.push(itv);
     maxDelayAfter.push(0);
   }

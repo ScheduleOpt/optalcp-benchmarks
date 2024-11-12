@@ -98,7 +98,7 @@ function defineModel(filename: string) {
   // Create interval variables
   let jobs: CP.IntervalVar[] = [];
   for (let j = 0; j < nbRealJobs; j++) {
-    let itv = model.intervalVar().setName("J" + (j + 1));
+    let itv = model.intervalVar({ name: "J" + (j + 1) });
     jobs.push(itv);
   }
 

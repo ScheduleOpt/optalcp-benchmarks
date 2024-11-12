@@ -30,7 +30,7 @@ function defineModel(filename: string): CP.Model {
     for (let m = 0; m < nbMachines; m++) {
       // Create a new operation:
       const duration = input.shift() as number;
-      let operation = model.intervalVar().setLength(duration).setName("J" + (j + 1) + "M" + (m + 1));
+      let operation = model.intervalVar({length: duration, name: `J${j + 1}M${m + 1}`});
       machines[m].push(operation);
       jobs[j].push(operation);
       ends.push(operation.end());
