@@ -25,7 +25,11 @@ export function readFileAsNumberArray(filename: string): number[] {
  * - Removes any other short suffix (2 or 3 characters) such as ".txt".
  */
 export function makeModelName(benchmarkName: string, filename: string): string {
-  return benchmarkName + '_' + filename.replaceAll(/[/\\]/g, '_').replace(/^data_/, '').replace(/\.gz$/, '').replace(/\....?$/, '');
+  return benchmarkName + '_' + filename.replaceAll(/[/\\]/g, '_').
+    replace(/^data_/, '').
+    replace(/\.gz$/, '').
+    replace(/\.json$/, '').
+    replace(/\....?$/, '');
 }
 
 /**
