@@ -20,6 +20,9 @@ Benchmarks include:
 * [Capacitated VRP](benchmarks/cvrp)
 * [VRP with Time Windows](benchmarks/vrp-tw)
 
+Demos:
+* [External solutions / custom heuristics](benchmarks/demo-external-solutions)
+
 For each benchmark, there are usually [OptalCP](https://www.optalcp.com) and [IBM ILOG CPLEX CP Optimizer](https://www.ibm.com/products/ilog-cplex-optimization-studio/cplex-cp-optimizer) results (directories `benchmarks/*/results`) and also reference values from the literature (directories `benchmark/*/references`).
 
 Visualizations of the results contained in this repository can be found [here](https://optalcp.com/docs/benchmarks/).
