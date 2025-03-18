@@ -5,7 +5,7 @@ cff-version: 1.2.0
 title: OptalCP Benchmark Collection
 message: >-
   Please cite this repository using the metadata from this file. 
-  Feel free to add authors or change their order, for example by considering Credits section in the README.md files of individual benchmarks.
+  Feel free to add authors or change their order, for example, by considering the Credits section in the README.md files of individual benchmarks.
 type: software
 authors:
   - given-names: Vilím
@@ -16,9 +16,7 @@ authors:
     family-names: Diego Olivier Fernandez
     affiliation: OptalCP
   - name: et. al.
-identifiers:
-  - type: url
-    value: 'https://github.com/ScheduleOpt/optalcp-benchmarks'
+url: "https://github.com/ScheduleOpt/optalcp-benchmarks"
 keywords:
   - OptalCP
   - Constraint Programming
