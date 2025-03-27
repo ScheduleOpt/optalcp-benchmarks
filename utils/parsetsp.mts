@@ -3,11 +3,11 @@ import * as utils from './utils.mjs';
 
 // An auxiliary function for the GEO distance function.
 function toRadians(x: number) {
-  let degrees = Math.round(x);
+  let degrees = Math.trunc(x);
   let minutes = x - degrees;
   // Don't use Math.PI here to make sure we get the same result as other implementations.
   const pi = 3.141592;
-  return pi * (degrees + 5.0 * minutes / 3.0 ) / 180.0;
+  return pi * (degrees + 5.0 * minutes / 3.0) / 180.0;
 }
 
 type ParseResult = {
@@ -51,7 +51,7 @@ export function parse(filename: string, params: ParseParameters): ParseResult {
   let type = "UNKNOWN";
   let capacity = undefined;
   let edgeWeightFormat = "FUNCTION"
-  let transitionMatrix : number[][] = [];
+  let transitionMatrix: number[][] = [];
   let demands = undefined;
   let depots = undefined;
 
@@ -90,7 +90,7 @@ export function parse(filename: string, params: ParseParameters): ParseResult {
     }
     if (lines[pos].match(/^EDGE_WEIGHT_TYPE *:/)) {
       edgeWeightType = lines[pos].split(':')[1].trim();
-      if ([ "GEO", "EUC_2D", "CEIL_2D", "ATT", "EXPLICIT" ].includes(edgeWeightType) == false) {
+      if (["GEO", "EUC_2D", "CEIL_2D", "ATT", "EXPLICIT"].includes(edgeWeightType) == false) {
         console.error(`Unsupported edge weight type (not implemented): "${edgeWeightType}"`);
         process.exit();
       }
@@ -135,7 +135,7 @@ export function parse(filename: string, params: ParseParameters): ParseResult {
           for (let j = 0; j < nbNodes; j++) {
             let distX = nodes[i].x - nodes[j].x;
             let distY = nodes[i].y - nodes[j].y;
-            row[j] = Math.round(Math.sqrt(distX*distX + distY*distY));
+            row[j] = Math.round(Math.sqrt(distX * distX + distY * distY));
           }
         }
         else if (edgeWeightType == "CEIL_2D") {
