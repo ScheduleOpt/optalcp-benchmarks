@@ -17,13 +17,21 @@ Knows solutions (also from [CVRPLIB](http://vrp.galgos.inf.puc-rio.br/index.php/
 ## Benchmark-specific options
 
 ```text
-  --objective <makespan|path> Objective function
-  --scale <number>            Scale the time by a constant factor
-  --rounding <round|ceil>     How to round 2D distances
-  --breakVehicleSymmetry      Order vehicles by the maximum city visited
+VRP-TW options:
+  --objective <objective type>   The type of the objective function (default: makespan)
+  --scale <number>               Scale the time by a constant factor (default: 1)
+  --breakVehicleSymmetry         Order vehicles by the maximum city visited (default: false)
+  --rounding <round|ceil>        How to round the distances (default: ceil)
 ```
 
-See below for more details.
+Objective types are:
+
+* **makespan**: the time the last vehicle returns to the depot
+* **traveltime**: the total time spent by traveling (wihtout wating and without service times)
+* **totaltime**: the total time spent by all vehicles (with traveling, waiting and service times)
+* **path**: the time spent not at customer (i.e., the total traveling and waiting time)
+* **nbvehicles**: the minimum number of vehicles used
+* **nbvehicle,traveltime**: `1,000,000 * nbvehicles + traveltime`
 
 ## About the model
 
@@ -39,12 +47,6 @@ The nodes are given by 2D coordinates, their distances are computed by the Eucli
 ## Scaling
 
 Some known solutions give a non-integer path length, but OptalCP works only with integers. To get higher precision, all the input values can be multiplied by a constant factor given by `--scale <number>`. The objective value is increased by the scaling factor, too.
-
-## Makespan objective
-
-The default objective is to minimize the total length of the routes. However, there is also an option `--objective makespan` to minimize the length of the longest route. In this case, we compute when the last vehicle returns to the depot.
-
-Note that the makespan objective includes service times. In contrast, the default objective "path" deduces the service times from the total durations of the routes.
 
 ## Symmetry breaking
 

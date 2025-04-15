@@ -3,10 +3,11 @@ import * as CP from '@scheduleopt/optalcp';
 import * as utils from '../../utils/utils.mjs';
 
 // Command line options:
-let rounding = "round"
-let objective = "path";
+let rounding = "ceil"
+let objectiveType = "makespan";
 let breakVehicleSymmetry = false;
 let scaleFactor = 1.0;
+let bigM = 1_000_000;
 
 function verifyExpectedLine(lines: string[], pos: number, expected: RegExp): void {
   if (!lines[pos].trim().match(expected)) {
@@ -49,7 +50,7 @@ export function defineModel(filename: string): CP.Model {
     }
     nodes.push({
       x: x * scaleFactor,
-      y: x * scaleFactor,
+      y: y * scaleFactor,
       demand,
       ready: ready * scaleFactor,
       due: due * scaleFactor,
@@ -99,11 +100,13 @@ export function defineModel(filename: string): CP.Model {
   let visits: CP.IntervalVar[][] = Array.from({ length: nbCustomers }, () => []);
   // For each vehicle, the time of the last visit:
   let endTimes: CP.IntExpr[] = [];
-  // Usage of each vehicle (how much capacity is used):
-  let vehicleUsage: CP.IntExpr[] = [];
+  // Load of each vehicle (how much capacity is used):
+  let vehicleLoad: CP.IntExpr[] = [];
   // For each vehicle, we compute the max index of a customer served.
   // Used only for symmetry-breaking.
   let maxServed: CP.IntExpr[] = [];
+  // Whether given vehicle is used or not:
+  let vehicleUsed: CP.IntExpr[] = [];
 
   for (let v = 0; v < nbVehicles; v++) {
     // Visits done by the vehicle v:
@@ -112,9 +115,28 @@ export function defineModel(filename: string): CP.Model {
         name: `V_${v + 1}_${i + 1}`,
         optional: true,
         length: node.serviceTime,
-        start: [node.ready, node.due],
+        // The start time must be within the time window. But it cannot be
+        // before depotDistances[i], what is the minimum time necessary to get
+        // there (if it is the very first customer).
+        start: [Math.max(depotDistances[i], node.ready), node.due],
+        // The range for the end time can be also computed from the time window
+        // and the visit duration.
+        // It is necessary only for objectiveType == "travelTime
+        end: [Math.max(depotDistances[i], node.ready) + node.serviceTime, node.due + node.serviceTime]
       })
     );
+
+    if (objectiveType == "traveltime") {
+      for (let i = 0; i < nbCustomers; i++) {
+        // Extend the visit so that it also covers potential waiting time for the
+        // time window. I.e., the visit can start sooner and can be longer.
+        // Length min, startMax, endMin and endMax remain the same.
+        myVisits[i].setStartMin(depotDistances[i]);
+        myVisits[i].setLengthMax(CP.LengthMax);
+        assert(myVisits[i].getLengthMin() == customerNodes[i].serviceTime);
+      }
+    }
+
     // Add myVisits to the visits array:
     for (let i = 0; i < nbCustomers; i++)
       visits[i].push(myVisits[i]);
@@ -124,20 +146,17 @@ export function defineModel(filename: string): CP.Model {
     // Constraints for the depot:
     let last = model.intervalVar({ length: 0, name: `last_${v + 1}` });
     for (let i = 0; i < nbCustomers; i++) {
-      // We don't model the initial depot visit at all. It is known to be at time 0.
-      // Instead, we increase startMin of all the visits by the transition matrix value:
-      let d = depotDistances[i];
-      // We could use just start().ge(d) below. However then we couldn't export the model into CPO format.
-      model.constraint(myVisits[i].startOr(d).ge(d));
       // The return to depot must be after all the other visits and respect the transition matrix:
-      model.endBeforeStart(myVisits[i], last, d);
+      model.endBeforeStart(myVisits[i], last, depotDistances[i]);
     }
     endTimes.push(last.end());
+
+    vehicleUsed.push(model.max(myVisits.map(itv => itv.presence())));
 
     // Capacity of the vehicle cannot be exceeded:
     let used = model.sum(myVisits.map((itv, i) => itv.presence().times(customerNodes[i].demand)));
     model.constraint(used.le(capacity));
-    vehicleUsage.push(used);
+    vehicleLoad.push(used);
 
     // Compute the max index of a served customer as:
     //    min_i { (i+1) * myVisits[i].presence() }
@@ -160,7 +179,7 @@ export function defineModel(filename: string): CP.Model {
   // underused and there is no way to satisfy the remaining demands by the
   // remaining vehicles.
   let totalDemand = customerNodes.reduce((a, b) => a + b.demand, 0);
-  model.constraint(model.sum(vehicleUsage).eq(totalDemand));
+  model.constraint(model.sum(vehicleLoad).eq(totalDemand));
 
   if (breakVehicleSymmetry) {
     // The values of the maxServed variables must be increasing with the vehicle number.
@@ -180,15 +199,33 @@ export function defineModel(filename: string): CP.Model {
     }
   }
 
-  if (objective === "path") {
+  if (objectiveType === "makespan")
+    model.minimize(model.max(endTimes));
+  else if (objectiveType === "totaltime")
+    model.minimize(model.sum(endTimes));
+  else if (objectiveType === "nbvehicles")
+    model.minimize(model.sum(vehicleUsed));
+  else if (objectiveType === "path") {
     let totalServiceTime = customerNodes.reduce((a, b) => a + b.serviceTime, 0);
     let objective = model.sum(endTimes).minus(totalServiceTime);
     model.constraint(objective.ge(0));
     model.minimize(objective);
   }
   else {
-    assert(objective === "makespan");
-    model.minimize(model.max(endTimes));
+    assert(objectiveType == "traveltime" || objectiveType == "nbvehicles,traveltime");
+    // Compute how much time we spent by the visits (including the waiting time).
+    // To get a bit more propagation, for each visit compute the max length over
+    // its alternatives (different vehicles).
+    let visitDurations: CP.IntExpr[] = [];
+    for (let i = 0; i < nbCustomers; i++)
+      visitDurations.push(model.max(visits[i].map(visit => visit.length())));
+    let objective = model.sum(endTimes).minus(model.sum(visitDurations));
+    if (objectiveType == "nbvehicles,traveltime") {
+      // The objective is bigM * nbVehicles + total travel time
+      objective = model.sum(vehicleUsed).times(bigM).plus(objective);
+    }
+    model.constraint(objective.ge(0));
+    model.minimize(objective);
   }
 
   return model;
@@ -197,16 +234,23 @@ export function defineModel(filename: string): CP.Model {
 let params: CP.BenchmarkParameters = {
   usage: "Usage: node vrp-tw.mjs [OPTIONS] INPUT_FILE [INPUT_FILE2] ..\n\n" +
     "VRP-TW options:\n" +
-    "  --objective <path|makespan> Objective function\n" +
-    "  --scale <number>            Scale the time by a constant factor\n" +
-    "  --breakVehicleSymmetry      Order vehicles by the maximum city visited\n" +
-    "  --rounding <round|ceil>     How to round the distances"
+    "  --objective <objective type>   The type of the objective function (default: makespan)\n" +
+    "  --scale <number>               Scale the time by a constant factor (default: 1)\n" +
+    "  --breakVehicleSymmetry         Order vehicles by the maximum city visited (default: false)\n" +
+    "  --rounding <round|ceil>        How to round the distances (default: ceil)\n\n" +
+    "Objective types are:\n" +
+    "  * makespan: the time the last vehicle returns to the depot\n" +
+    "  * traveltime: the total time spent by traveling (wihtout wating and without service times)\n" +
+    "  * totaltime: the total time spent by all vehicles (with traveling, waiting and service times)\n" +
+    "  * path: the time spent not at customer (i.e., the total traveling and waiting time)\n" +
+    "  * nbvehicles: the minimum number of vehicles used\n" +
+    "  * nbvehicle,traveltime: 1000000*nbvehicles + traveltime"
 };
 
 let restArgs = CP.parseSomeBenchmarkParameters(params);
-objective = utils.getStringOption("--objective", objective, restArgs);
-if (["path", "total", "makespan"].indexOf(objective) === -1) {
-  console.error("Invalid value for --objective. Could be only 'makespan' or 'total'");
+objectiveType = utils.getStringOption("--objective", objectiveType, restArgs);
+if (["path", "traveltime", "totaltime", "makespan", "nbvehicles", "nbvehicles,traveltime"].indexOf(objectiveType) === -1) {
+  console.error("Invalid value for --objective.");
   process.exit(1);
 }
 scaleFactor = utils.getFloatOption("--scale", scaleFactor, restArgs);
