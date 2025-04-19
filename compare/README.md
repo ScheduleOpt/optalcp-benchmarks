@@ -30,4 +30,4 @@ Where:
 * `../benchmarks/flexible-jobshop/results/CPO-4W.json` is a data file with the results of the second solver
 * `html-flexible-jobshop` is the output directory (will be created if it doesn't exist)
 
-The output directory will contain the file `main.html,` which is the entry point for the generated pages. It will contain links to individual problem instances and a summary table with the results. The generated pages are static; they can be directly opened in a web browser or shared with others.
+The output directory will contain the file `main.html,` which is the entry point for the generated pages. It will contain links to individual problem instances and a summary table with the results. The generated pages are static; they can be directly opened in a web browser, sent by email, etc.

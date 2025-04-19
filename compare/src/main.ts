@@ -1,7 +1,8 @@
 import * as d3 from "d3";
+import * as Plot from "@observablehq/plot";
 import * as CP from "@scheduleopt/optalcp";
 import * as lib from './lib.mjs';
-import 'sortable-tablesort/sortable.js'
+import 'sortable-tablesort'
 
 function reportRunErrors(runName: string, errors: CP.BenchmarkResult[], div: d3.Selection<d3.BaseType, unknown, HTMLElement, unknown>) {
   if (errors.length === 0)
@@ -506,11 +507,171 @@ function makeSummary(pairs: lib.BriefPair[], runNames: lib.RunNames) {
     .text((d: string) => d);
 }
 
-// To avoid top-level await, we use an async main function:
-function main(pairs: lib.BriefPair[], runNames: lib.RunNames, errorsA: CP.BenchmarkResult[], errorsB: CP.BenchmarkResult[]) {
+function plotObjectiveHistory(history: lib.NormalizedHistory, runNames: lib.RunNames) {
+  // Data displayed in the tooltip for a segment of the objective history graph:
+  type Tip = {
+    time: number;
+    objectiveA: number;
+    objectiveB: number;
+    lowerBoundA: number;
+    lowerBoundB: number;
+  };
+
+  // Compute tooltips for objective history graph. Sweep through all the lines
+  // from the graph.
+  let tips: Tip[] = [];
+  {
+    // Indexes into objective history:
+    let oA = 0;
+    let oB = 0;
+    // Indexes into lower bound history:
+    let lA = 0;
+    let lB = 0;
+    // The current tip:
+    let tip: Tip = {
+      time: 0,
+      objectiveA: 0,
+      objectiveB: 0,
+      lowerBoundA: 0,
+      lowerBoundB: 0,
+    };
+    let objA = history.objectiveA;
+    let objB = history.objectiveB;
+    let lbA = history.lowerBoundA;
+    let lbB = history.lowerBoundB;
+    let prevTime = 0;
+    // Max/min objective values (including lower bounds):
+    for (;;) {
+      let nextTime = Infinity;
+      let nextEvent : string | undefined = undefined;
+      if (oA < objA.length) {
+        let nextTimeA = objA[oA].time;
+        if (nextTimeA < nextTime) {
+          nextTime = nextTimeA;
+          nextEvent = "objectiveA";
+        }
+      }
+      if (oB < objB.length) {
+        let nextTimeB = objB[oB].time;
+        if (nextTimeB < nextTime) {
+          nextTime = nextTimeB;
+          nextEvent = "objectiveB";
+        }
+      }
+      if (lA < lbA.length) {
+        let nextTimeA = lbA[lA].time;
+        if (nextTimeA < nextTime) {
+          nextTime = nextTimeA;
+          nextEvent = "lowerBoundA";
+        }
+      }
+      if (lB < lbB.length) {
+        let nextTimeB = lbB[lB].time;
+        if (nextTimeB < nextTime) {
+          nextTime = nextTimeB;
+          nextEvent = "lowerBoundB";
+        }
+      }
+      if (nextEvent === undefined)
+        break;
+      tip.time = (prevTime + nextTime) / 2;
+      if (tips.length == 0 || tips[tips.length - 1].time != tip.time) {
+        tips.push(tip);
+        prevTime = nextTime;
+      }
+      tip = {
+        time: 0,
+        objectiveA: tip.objectiveA,
+        objectiveB: tip.objectiveB,
+        lowerBoundA: tip.lowerBoundA,
+        lowerBoundB: tip.lowerBoundB
+      };
+      if (nextEvent === "objectiveA") {
+        tip.objectiveA = objA[oA].value;
+        oA++;
+      } else if (nextEvent === "objectiveB") {
+        tip.objectiveB = objB[oB].value;
+        oB++;
+      } else if (nextEvent === "lowerBoundA") {
+        tip.lowerBoundA = lbA[lA].value;
+        lA++;
+      } else if (nextEvent === "lowerBoundB") {
+        tip.lowerBoundB = lbB[lB].value;
+        lB++;
+      }
+    }
+    // Get rid of the first dummy tip:
+    tips.shift();
+  }
+
+  // Common options for all lines in the plot:
+  let commonOptions = { x: "time" };
+  // Stroke must be a function. If we use a string, it will be interpreted as a color.
+  // And for legend, we need to use strings.
+  let optionsObjectiveA = { stroke: (_: number) => "Objective " + runNames[0], y: "value", ...commonOptions };
+  let optionsObjectiveB = { stroke: (_: number) => "Objective " + runNames[1], y: "value", ...commonOptions };
+  let optionsLBA = { stroke: (_: number) => "Lower bound " + runNames[0], y: "value", ...commonOptions };
+  let optionsLBB = { stroke: (_: number) => "Lower bound " + runNames[1], y: "value", ...commonOptions };
+
+  return Plot.plot({
+    marginLeft: 50,
+    width: 1200,
+    height: 600,
+    y: { grid: true, label: "Objective" },
+    x: { label: "Time" },
+    color: {
+      type: "categorical",
+      domain: ["Objective " + runNames[0], "Objective " + runNames[1], "Lower bound " + runNames[0], "Lower bound " + runNames[1]],
+      //range: ["#1966b0", "#eb773e", "#73d9f0", "#f7b301"],
+      legend: true,
+    },
+    marks: [
+      Plot.ruleX([0]),
+      Plot.gridY(),
+      Plot.frame(),
+
+      // Draw lower bounds first, so that they are behind the objectives:
+      Plot.line(history.lowerBoundB, optionsLBB),
+      Plot.line(history.lowerBoundA, optionsLBA),
+
+      // Dots were replaced by markers (see commonOptions):
+      //   Plot.dot(pair.b.objectiveHistory, optionsObjectiveB),
+      Plot.line(history.objectiveB, optionsObjectiveB),
+
+      Plot.line(history.objectiveA, optionsObjectiveA),
+
+      Plot.tip(tips, Plot.pointerX({
+        x: (d: Tip) => d.time,
+        title: (d: Tip) =>
+          "Time: " + lib.formatDuration(d.time) + "\n" +
+          "Objective " + runNames[0] + ": " +   d3.format(".4f")(d.objectiveA) + "\n" +
+          "Objective " + runNames[1] + ": " +   d3.format(".4f")(d.objectiveB) + "\n" +
+          "Lower bound " + runNames[0] + ": " + d3.format(".4f")(d.lowerBoundA) + "\n" +
+          "Lower bound " + runNames[1] + ": " + d3.format(".4f")(d.lowerBoundB),
+      })),
+
+      // The following is copied from: https://observablehq.com/plot/interactions/pointer
+      // There's also an example that instead of the tip shows its text somewhere else.
+      Plot.ruleX(tips, Plot.pointerX({x: (d: Tip) => (d.time) / 2, stroke: "black", strokeWidth: 1})),
+    ],
+  });
+}
+
+
+function main(
+  pairs: lib.BriefPair[],
+  runNames: lib.RunNames,
+  normalizedHistory: lib.NormalizedHistory,
+  errorsA: CP.BenchmarkResult[],
+  errorsB: CP.BenchmarkResult[])
+{
   reportErrors(runNames, errorsA, errorsB);
   makeSummary(pairs, runNames);
   makeDetailedTable(pairs, runNames);
+
+  let objectiveHistory = document.querySelector("#ObjectiveHistory");
+  if (objectiveHistory)
+    objectiveHistory.append(plotObjectiveHistory(normalizedHistory, runNames));
 
   let objectiveDiff = document.querySelector("#ObjectiveDiff");
   if (objectiveDiff)

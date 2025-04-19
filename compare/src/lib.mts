@@ -29,6 +29,18 @@ export type BriefPair = {
   modelName: string;
 };
 
+export type NormalizedHistoryItem = {
+  value: number;
+  time: number;
+}
+
+export type NormalizedHistory = {
+  objectiveA: NormalizedHistoryItem[];
+  objectiveB: NormalizedHistoryItem[];
+  lowerBoundA: NormalizedHistoryItem[];
+  lowerBoundB: NormalizedHistoryItem[];
+}
+
 export function computePairs(dataA: CP.NormalBenchmarkResult[], dataB: CP.NormalBenchmarkResult[]): Pair[] {
   let workingPairs : Pair[] = [];
 
