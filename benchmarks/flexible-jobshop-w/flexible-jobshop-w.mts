@@ -1,0 +1,93 @@
+import * as CP from '@scheduleopt/optalcp';
+import * as utils from '../../utils/utils.mjs';
+import { strict as assert } from 'assert';
+
+function defineModel(filename: string): CP.Model {
+  // Read the input file into a string, possibly unzip it if it ends with .gz:
+  let inputText = utils.readFile(filename);
+  // The first line may contain 2 or 3 numbers. The third number should be ignored.
+  // Therefore find end of the first line:
+  let firstEOL = inputText.indexOf('\n');
+  // The first line has the following format:
+  // <nbJobs> <nbMachines> <nbWorkers> (avg number of machines per operation)
+  // The avg number of machines per operation is optional and it is in brackets. This model does not use it.
+  // Convert first line into an array of numbers. Ignore characters '(' and ')'.
+  let firstLine = inputText.slice(0, firstEOL).trim().replace(/[()]/g, '').split(/\s+/).map(Number);
+  // Similarly convert the rest of the file into an array of numbers:
+  let input = inputText.slice(firstEOL+1).trim().split(/\s+/).map(Number);
+
+  let model = new CP.Model(utils.makeModelName('flexible-jobshop', filename));
+  const nbJobs = firstLine[0] as number;
+  const nbMachines = firstLine[1] as number;
+  const nbWorkers = firstLine[2] as number;
+  console.log(`FJSSP-W with ${nbMachines} machines, ${nbJobs} jobs and ${nbWorkers} workers.`);
+
+  // For each machine create an array of operations executed on it.
+  // Initialize all machines by empty arrays:
+  let machines: CP.IntervalVar[][] = [];
+  for (let j = 0; j < nbMachines; j++)
+    machines[j] = [];
+  // Similarly for workers:
+  let workers: CP.IntervalVar[][] = [];
+  for (let w = 0; w < nbWorkers; w++)
+    workers[w] = [];
+
+  // End times of each job:
+  let ends: CP.IntExpr[] = [];
+
+  for (let i = 0; i < nbJobs; i++) {
+    let nbOperations = input.shift() as number;
+    // Previous task in the job:
+    let prev: CP.IntervalVar | undefined = undefined;
+    for (let j = 0; j < nbOperations; j++) {
+      // Create a new operation (master of alternative constraint):
+      let operation = model.intervalVar({ name: `J${i + 1}O${j + 1}` });
+      let nbMachineChoices = input.shift() as number;
+      let modes: CP.IntervalVar[] = [];
+      for (let k = 0; k < nbMachineChoices; k++) {
+        const machineId = input.shift() as number;
+        let nbWorkerChoices = input.shift() as number;
+        for (let w = 0; w < nbWorkerChoices; w++) {
+          const workerId = input.shift() as number;
+          const duration = input.shift() as number;
+          let mode = model.intervalVar({ length: duration, optional: true, name: `J${i + 1}O${j + 1}_M${machineId}W${workerId}` });
+          // In the input file machines are counted from 1, we count from 0. The same for workers.
+          machines[machineId - 1].push(mode);
+          workers[workerId - 1].push(mode);
+          modes.push(mode);
+        }
+      }
+      model.alternative(operation, modes);
+      // Operation has a predecessor:
+      if (prev !== undefined)
+        prev.endBeforeStart(operation);
+      prev = operation;
+    }
+    // End time of the job is end time of the last operation:
+    ends.push((prev as CP.IntervalVar).end());
+  }
+
+  // Tasks on each machine cannot overlap:
+  for (let j = 0; j < nbMachines; j++)
+    model.noOverlap(machines[j]);
+  // Tasks on each worker cannot overlap:
+  for (let w = 0; w < nbWorkers; w++)
+    model.noOverlap(workers[w]);
+
+  // Minimize the makespan:
+  let makespan = model.max(ends);
+  makespan.minimize();
+
+  // There shouldn't be anything more in the input:
+  assert(input.length == 0);
+
+  return model;
+}
+
+
+// Default parameter settings that can be overridden on command line:
+let params: CP.BenchmarkParameters = {
+  usage: "Usage: node flexible-jobshop-w.mjs [OPTIONS] INPUT_FILE1 [INPUT_FILE2] .."
+};
+let restArgs = CP.parseSomeBenchmarkParameters(params);
+CP.benchmark(defineModel, restArgs, params);
