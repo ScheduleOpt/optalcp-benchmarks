@@ -69,7 +69,7 @@ if (index === undefined) {
   process.exit(1);
 }
 if (index == restArgs.length - 1) {
-  console.log("Missing value of --nbOperation argument.");
+  console.log("Missing value of --nbOperators argument.");
   process.exit(1);
 }
 let nbOperators = Number(restArgs[index + 1]);
