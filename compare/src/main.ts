@@ -605,7 +605,7 @@ function plotObjectiveHistory(history: lib.NormalizedHistory, runNames: lib.RunN
   }
 
   // Common options for all lines in the plot:
-  let commonOptions = { x: "time" };
+  let commonOptions = { x: "time", strokeWidth: 2 };
   // Stroke must be a function. If we use a string, it will be interpreted as a color.
   // And for legend, we need to use strings.
   let optionsObjectiveA = { stroke: (_: number) => "Objective " + runNames[0], y: "value", ...commonOptions };
