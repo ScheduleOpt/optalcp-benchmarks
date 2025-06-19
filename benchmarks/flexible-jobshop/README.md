@@ -10,6 +10,7 @@ Then it required some data cleaning.
 ## TODO:
 
 * Found other(?) data here: <https://openhsu.ub.hsu-hh.de/entities/publication/12025e3c-16da-4475-ad44-9722bf877c80>
+* And here: <https://github.com/SchedulingLab/fjsp-instances>
 * Are there some new instances? The paper maybe describes some details about the instances.
 * The paper promisses instances with workcenters. However, at the first glance, I don't see them.
 

@@ -2,6 +2,8 @@ import * as CP from '@scheduleopt/optalcp';
 import * as utils from '../../utils/utils.mjs';
 import { strict as assert } from 'assert';
 
+let noRedundantCumul = false;
+
 function defineModel(filename: string): CP.Model {
   // Read the input file into a string, possibly unzip it if it ends with .gz:
   let inputText = utils.readFile(filename);
@@ -60,7 +62,8 @@ function defineModel(filename: string): CP.Model {
       if (prev !== undefined)
         prev.endBeforeStart(operation);
       prev = operation;
-      allMachines.push(operation.pulse(1));
+      if (!noRedundantCumul)
+        allMachines.push(operation.pulse(1));
     }
     // End time of the job is end time of the last operation:
     ends.push((prev as CP.IntervalVar).end());
@@ -72,7 +75,8 @@ function defineModel(filename: string): CP.Model {
 
   // TODO:1 The following constraint should be marked as redundant and shouldn't
   // be used with LNS:
-  model.cumulSum(allMachines).cumulLe(nbMachines);
+  if (!noRedundantCumul)
+    model.cumulSum(allMachines).cumulLe(nbMachines);
 
   // Minimize the makespan:
   let makespan = model.max(ends);
@@ -87,7 +91,10 @@ function defineModel(filename: string): CP.Model {
 
 // Default parameter settings that can be overridden on command line:
 let params: CP.BenchmarkParameters = {
-  usage: "Usage: node flexible-jobshop.mjs [OPTIONS] INPUT_FILE1 [INPUT_FILE2] .."
+  usage: "Usage: node flexible-jobshop.mjs [OPTIONS] INPUT_FILE1 [INPUT_FILE2] ..\n\n" +
+    "Flexible JobShop options:\n" +
+    "  --noRedundantCumul  Do not use redundant cumul constraint (default is to use it)"
 };
 let restArgs = CP.parseSomeBenchmarkParameters(params);
+noRedundantCumul = utils.getBoolOption("--noRedundantCumul", restArgs);
 CP.benchmark(defineModel, restArgs, params);
