@@ -1,10 +1,17 @@
 import * as CP from '@scheduleopt/optalcp';
 import * as utils from '../../utils/utils.mjs';
 import { strict as assert } from 'assert';
+import * as fs from 'fs';
 
-let noRedundantCumul = false;
+let redundantCumul = false;
 
-function defineModel(filename: string): CP.Model {
+type ModelWithVariables = {
+  model: CP.Model;
+  // For each operation (order by job and then by operation), all its possible modes:
+  allModes: CP.IntervalVar[][];
+}
+
+function defineModelAndModes(filename: string): ModelWithVariables {
   // Read the input file into a string, possibly unzip it if it ends with .gz:
   let inputText = utils.readFile(filename);
   // The first line may contain 2 or 3 numbers. The third number should be ignored.
@@ -40,6 +47,8 @@ function defineModel(filename: string): CP.Model {
   // TODO:2 We may need more fine-grained redundant cumul(s) depending on what
   // resources are most often combined together.
 
+  let allModes: CP.IntervalVar[][] = [];
+
   for (let i = 0; i < nbJobs; i++) {
     let nbOperations = input.shift() as number;
     // Previous task in the job:
@@ -58,11 +67,12 @@ function defineModel(filename: string): CP.Model {
         modes.push(mode);
       }
       model.alternative(operation, modes);
+      allModes.push(modes);
       // Operation has a predecessor:
       if (prev !== undefined)
         prev.endBeforeStart(operation);
       prev = operation;
-      if (!noRedundantCumul)
+      if (redundantCumul)
         allMachines.push(operation.pulse(1));
     }
     // End time of the job is end time of the last operation:
@@ -75,7 +85,7 @@ function defineModel(filename: string): CP.Model {
 
   // TODO:1 The following constraint should be marked as redundant and shouldn't
   // be used with LNS:
-  if (!noRedundantCumul)
+  if (redundantCumul)
     model.cumulSum(allMachines).cumulLe(nbMachines);
 
   // Minimize the makespan:
@@ -85,16 +95,77 @@ function defineModel(filename: string): CP.Model {
   // There shouldn't be anything more in the input:
   assert(input.length == 0);
 
-  return model;
+  return { model, allModes };
 }
 
+// Run FJSSP model and write the solution to a JSON file.
+// The solution consists of 3 vectors:
+//   * the first one containing the start times of each operation,
+//   * the second the assigned machine for each operation,
+// The order of the operations is fixed across all of these vectors.
+async function runFJSSPJson(inputFilename: string, outputJSON: string, params: CP.BenchmarkParameters) {
+  let { model, allModes } = defineModelAndModes(inputFilename);
+  let result = await CP.solve(model, params);
+  let solution = result.bestSolution;
+  let startTimes = [];
+  let machineAssignments = [];
+  if (solution) {
+    for (const modes of allModes) {
+      for (const modeVar of modes) {
+        if (solution.isAbsent(modeVar))
+          continue;
+        const start = solution.getStart(modeVar);
+        const machineId = modeVar.getName()!.match(/M(\d+)/)?.[1];
+        assert(machineId !== undefined);
+        startTimes.push(start);
+        machineAssignments.push(parseInt(machineId));
+        break; // Only one mode can be assigned to the operation.
+      }
+    }
+  }
+  let output = {
+    objectiveHistory: result.objectiveHistory,
+    lowerBoundHistory: result.lowerBoundHistory,
+    duration: result.duration,
+    startTimes,
+    machineAssignments
+  };
+  fs.writeFileSync(outputJSON, JSON.stringify(output));
+}
+
+
+// A function usable for CP.benchmark():
+function defineModel(filename: string): CP.Model {
+  return defineModelAndModes(filename).model;
+}
 
 // Default parameter settings that can be overridden on command line:
 let params: CP.BenchmarkParameters = {
   usage: "Usage: node flexible-jobshop.mjs [OPTIONS] INPUT_FILE1 [INPUT_FILE2] ..\n\n" +
     "Flexible JobShop options:\n" +
-    "  --noRedundantCumul  Do not use redundant cumul constraint (default is to use it)"
+    "  --redundantCumul    Add a redundant cumul constraint\n\n" +
+    "Output options:\n" +
+    "  --fjssp-json <filename>  Write the solution, LB and UB history to a JSON file.\n" +
+    "                           Only single input file is supported."
 };
-let restArgs = CP.parseSomeBenchmarkParameters(params);
-noRedundantCumul = utils.getBoolOption("--noRedundantCumul", restArgs);
-CP.benchmark(defineModel, restArgs, params);
+
+let commandLineArgs = process.argv.slice(2);
+let fjsspJsonFilename = utils.getStringOption("--fjssp-json", "", commandLineArgs);
+redundantCumul = utils.getBoolOption("--redundantCumul", commandLineArgs);
+
+// The model can be run in two modes:
+// * Using CP.benchmark when --fjssp-json option is not specified.
+// * Using CP.solve when --fjssp-json option is specified. In this case the solution is written to a JSON file.
+// So, depending on --fjssp-json option, the command line may contain benchmark parameters.
+
+if (fjsspJsonFilename === "") {
+  let restArgs = CP.parseSomeBenchmarkParameters(params, commandLineArgs);
+  CP.benchmark(defineModel, restArgs, params);
+} else {
+  let restArgs = CP.parseSomeParameters(params, commandLineArgs);
+  if (restArgs.length !== 1) {
+    console.error("Error: --fjssp-json option requires exactly one input file.");
+    process.exit(1);
+  }
+  runFJSSPJson(restArgs[0], fjsspJsonFilename, params);
+}

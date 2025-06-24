@@ -127,6 +127,7 @@ async function runFJSSPWJson(inputFilename: string, outputJSON: string, params: 
   let output = {
     objectiveHistory: result.objectiveHistory,
     lowerBoundHistory: result.lowerBoundHistory,
+    duration: result.duration,
     startTimes,
     machineAssignments,
     workerAssignments
@@ -149,6 +150,11 @@ let params: CP.BenchmarkParameters = {
 
 let commandLineArgs = process.argv.slice(2);
 let fjsspWJsonFilename = utils.getStringOption("--fjssp-w-json", "", commandLineArgs);
+
+// The model can be run in two modes:
+// * Using CP.benchmark when --fjssp-w-json option is not specified.
+// * Using CP.solve when --fjssp-w-json option is specified. In this case the solution is written to a JSON file.
+// So, depending on --fjssp-w0json option, the command line may contain benchmark parameters.
 
 if (fjsspWJsonFilename === "") {
   let restArgs = CP.parseSomeBenchmarkParameters(params, commandLineArgs);
