@@ -4,6 +4,7 @@ import { strict as assert } from 'assert';
 import * as fs from 'fs';
 
 let flatAlternatives = false;
+let verbose = false;
 
 type ModelWithVariables = {
   model: CP.Model;
@@ -29,7 +30,8 @@ function defineModelAndModes(filename: string): ModelWithVariables {
   const nbJobs = firstLine[0] as number;
   const nbMachines = firstLine[1] as number;
   const nbWorkers = firstLine[2] as number;
-  console.log(`FJSSP-W with ${nbMachines} machines, ${nbJobs} jobs and ${nbWorkers} workers.`);
+  if (verbose)
+    console.log(`FJSSP-W with ${nbMachines} machines, ${nbJobs} jobs and ${nbWorkers} workers.`);
 
   // For each machine create an array of operations executed on it.
   // Initialize all machines by empty arrays:
@@ -176,10 +178,9 @@ function defineModel(filename: string): CP.Model {
 // Default parameter settings that can be overridden on command line:
 let params: CP.BenchmarkParameters = {
   usage: "Usage: node flexible-jobshop-w.mjs [OPTIONS] INPUT_FILE1 [INPUT_FILE2] ..\n\n" +
-	  "Model options:\n" +
-	  "  --flatAlternatives    Don't use hierarchical alternative constraints (for worker and for machine).\n" +
-	  "                        This option usually degradates the performance.\n\n" +
-    "Output options:\n" +
+	  "FJSSP-W specific options:\n" +
+	  "  --flatAlternatives         Don't use hierarchical alternative constraints (for worker and for machine).\n" +
+    "  --verbose                  Enable verbose output.\n" +
     "  --fjssp-w-json <filename>  Write the solution, LB and UB history to a JSON file.\n" +
     "                             Only single input file is supported."
 };
@@ -187,6 +188,7 @@ let params: CP.BenchmarkParameters = {
 let commandLineArgs = process.argv.slice(2);
 let fjsspWJsonFilename = utils.getStringOption("--fjssp-w-json", "", commandLineArgs);
 flatAlternatives = utils.getBoolOption("--flatAlternatives", commandLineArgs);
+verbose = utils.getBoolOption("--verbose", commandLineArgs);
 
 // The model can be run in two modes:
 // * Using CP.benchmark when --fjssp-w-json option is not specified.
