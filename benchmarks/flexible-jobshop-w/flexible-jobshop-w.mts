@@ -3,6 +3,8 @@ import * as utils from '../../utils/utils.mjs';
 import { strict as assert } from 'assert';
 import * as fs from 'fs';
 
+let flatAlternatives = false;
+
 type ModelWithVariables = {
   model: CP.Model;
   // For each operation (order by job and then by operation), all its possible modes:
@@ -53,6 +55,8 @@ function defineModelAndModes(filename: string): ModelWithVariables {
       let operation = model.intervalVar({ name: `J${i + 1}O${j + 1}` });
       let nbMachineChoices = input.shift() as number;
       let modes: CP.IntervalVar[] = [];
+      let variantsOnWorker: CP.IntervalVar[][] = Array.from({ length: nbWorkers }, () => []);
+      let variantsOnMachine: CP.IntervalVar[][] = Array.from({ length: nbMachines }, () => []);
       for (let k = 0; k < nbMachineChoices; k++) {
         const machineId = input.shift() as number;
         let nbWorkerChoices = input.shift() as number;
@@ -60,13 +64,42 @@ function defineModelAndModes(filename: string): ModelWithVariables {
           const workerId = input.shift() as number;
           const duration = input.shift() as number;
           let mode = model.intervalVar({ length: duration, optional: true, name: `J${i + 1}O${j + 1}_M${machineId}W${workerId}` });
-          // In the input file machines are counted from 1, we count from 0. The same for workers.
-          machines[machineId - 1].push(mode);
-          workers[workerId - 1].push(mode);
+          if (flatAlternatives) {
+            // In the input file machines are counted from 1, we count from 0. The same for workers.
+            machines[machineId - 1].push(mode);
+            workers[workerId - 1].push(mode);
+          } else {
+            variantsOnMachine[machineId - 1].push(mode);
+            variantsOnWorker[workerId - 1].push(mode);
+          }
           modes.push(mode);
         }
       }
-      model.alternative(operation, modes);
+      if (flatAlternatives)
+        model.alternative(operation, modes);
+      else {
+        let operationsOnMachine: CP.IntervalVar[] = [];
+        for (let m = 0; m < nbMachines; m++) {
+          if (variantsOnMachine[m].length > 0) {
+            let subOperation = model.intervalVar({ name: `J${i + 1}O${j + 1}_M${m + 1}`, optional: true });
+            model.alternative(subOperation, variantsOnMachine[m]);
+            operationsOnMachine.push(subOperation);
+            machines[m].push(subOperation);
+          }
+        }
+        model.alternative(operation, operationsOnMachine);
+        let operationsOnWorker: CP.IntervalVar[] = [];
+        for (let w = 0; w < nbWorkers; w++) {
+          if (variantsOnWorker[w].length > 0) {
+            let subOperation = model.intervalVar({ name: `J${i + 1}O${j + 1}_W${w + 1}`, optional: true });
+            model.alternative(subOperation, variantsOnWorker[w]);
+            operationsOnWorker.push(subOperation);
+            workers[w].push(subOperation);
+          }
+        }
+        model.alternative(operation, operationsOnWorker);
+      }
+
       allModes.push(modes);
       // Operation has a predecessor:
       if (prev !== undefined)
@@ -143,6 +176,9 @@ function defineModel(filename: string): CP.Model {
 // Default parameter settings that can be overridden on command line:
 let params: CP.BenchmarkParameters = {
   usage: "Usage: node flexible-jobshop-w.mjs [OPTIONS] INPUT_FILE1 [INPUT_FILE2] ..\n\n" +
+	  "Model options:\n" +
+	  "  --flatAlternatives    Don't use hierarchical alternative constraints (for worker and for machine).\n" +
+	  "                        This option usually degradates the performance.\n\n" +
     "Output options:\n" +
     "  --fjssp-w-json <filename>  Write the solution, LB and UB history to a JSON file.\n" +
     "                             Only single input file is supported."
@@ -150,6 +186,7 @@ let params: CP.BenchmarkParameters = {
 
 let commandLineArgs = process.argv.slice(2);
 let fjsspWJsonFilename = utils.getStringOption("--fjssp-w-json", "", commandLineArgs);
+flatAlternatives = utils.getBoolOption("--flatAlternatives", commandLineArgs);
 
 // The model can be run in two modes:
 // * Using CP.benchmark when --fjssp-w-json option is not specified.
