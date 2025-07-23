@@ -142,7 +142,10 @@ function plotObjectiveHistory(pair: lib.Pair, runNames: lib.RunNames) {
       //   Plot.dot(pair.b.objectiveHistory, optionsObjectiveB),
       Plot.line(pair.b.objectiveHistory, optionsObjectiveB),
       // Last line segment from the last solution to the end of the solve:
-      Plot.line([lastObjB, { solveTime: endTimeB, objective: lastObjB.objective}], optionsObjectiveB),
+      Plot.line(
+        pair.b.objectiveHistory.length == 0 ? [] : [lastObjB, { solveTime: endTimeB, objective: lastObjB.objective }],
+        optionsObjectiveB
+      ),
       // Star symbol at the end of the solve if there was a proof:
       Plot.dot(pair.b.proof ? [{ solveTime: endTimeB, value: lastObjB.objective }] : [], {
         x: "solveTime",
@@ -154,7 +157,10 @@ function plotObjectiveHistory(pair: lib.Pair, runNames: lib.RunNames) {
       }),
 
       Plot.line(pair.a.objectiveHistory, optionsObjectiveA),
-      Plot.line([lastObjA, { solveTime: endTimeA, objective: lastObjA.objective}], optionsObjectiveA),
+      Plot.line(
+        pair.a.objectiveHistory.length == 0 ? [] : [lastObjA, { solveTime: endTimeA, objective: lastObjA.objective}],
+        optionsObjectiveA
+      ),
       Plot.dot(pair.a.proof ? [{ solveTime: endTimeA, value: lastObjA.objective }] : [], {
         x: "solveTime",
         y: "value",

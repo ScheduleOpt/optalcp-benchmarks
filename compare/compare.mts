@@ -17,13 +17,13 @@ function canBeNormalized(result: CP.NormalBenchmarkResult): boolean {
   return true;
 }
 
-// Objectives must be numbers and at least one run had to find a solution
+// Objectives must be numbers and at both runs had to find a solution
 function canBeNormalizedPair(pair: lib.Pair): boolean {
   if (!canBeNormalized(pair.a))
     return false;
   if (!canBeNormalized(pair.b))
     return false;
-  if (pair.a.objectiveHistory.length == 0 && pair.b.objectiveHistory.length == 0)
+  if (pair.a.objectiveHistory.length == 0 || pair.b.objectiveHistory.length == 0)
     return false;
   return true;
 }
@@ -52,6 +52,8 @@ function getBestSolution(pair: lib.Pair): number {
 
 function normalizeObjectiveHistory(history: CP.ObjectiveHistoryItem[], bestSolution: number, duration: number): lib.NormalizedHistoryItem[] {
   let normalizedHistory: lib.NormalizedHistoryItem[] = [];
+  if (history.length == 0)
+    return normalizedHistory;
   for (let h of history) {
     let value = h.objective;
     assert(typeof value == "number");
@@ -62,12 +64,14 @@ function normalizeObjectiveHistory(history: CP.ObjectiveHistoryItem[], bestSolut
     });
   }
   let lastValue = normalizedHistory[normalizedHistory.length - 1].value;
-  normalizedHistory.push({value: lastValue, time: duration});
+  normalizedHistory.push({ value: lastValue, time: duration });
   return normalizedHistory;
 }
 
 function normalizeLowerBoundHistory(history: CP.LowerBoundEvent[], bestSolution: number, duration: number): lib.NormalizedHistoryItem[] {
   let normalizedHistory: lib.NormalizedHistoryItem[] = [];
+  if (history.length == 0)
+    return normalizedHistory;
   for (let h of history) {
     let value = h.value;
     assert(typeof value == "number");
@@ -112,7 +116,7 @@ function calcNormalizedPlot(data: lib.NormalizedHistoryItem[][]) : lib.Normalize
   return result;
 }
 
-function normalizeHistory(history: lib.Pair[]): lib.NormalizedHistory {
+function calcGlobalPlot(history: lib.Pair[]): lib.NormalizedHistory {
   let objectiveHistoriesA = [];
   let objectiveHistoriesB = [];
   let lowerBoundHistoriesA = [];
@@ -132,8 +136,14 @@ function normalizeHistory(history: lib.Pair[]): lib.NormalizedHistory {
   // The point will have the worst value from all the runs.
   // Without this, the curve can jump at the beginning.
   // TODO: Assumes minimization
-  let worstSolution = Math.max(...objectiveHistoriesA.map(h => h[0].value), ...objectiveHistoriesB.map(h => h[0].value));
-  let worstLowerBound = Math.min(...lowerBoundHistoriesA.map(h => h[0].value), ...lowerBoundHistoriesB.map(h => h[0].value));
+  let worstSolution = Math.max(
+    ...objectiveHistoriesA.filter(h => h.length > 0).map(h => h[0].value),
+    ...objectiveHistoriesB.filter(h => h.length > 0).map(h => h[0].value)
+  );
+  let worstLowerBound = Math.min(
+    ...lowerBoundHistoriesA.filter(h => h.length > 0).map(h => h[0].value),
+    ...lowerBoundHistoriesB.filter(h => h.length > 0).map(h => h[0].value)
+  );
   for (let h of objectiveHistoriesA)
     h.unshift({ value: worstSolution, time: 0 });
   for (let h of objectiveHistoriesB)
@@ -198,7 +208,7 @@ let briefPairs = pairs.map((p: lib.Pair) => {
 let mainParams =
   JSON.stringify(briefPairs) + ", " +
   JSON.stringify(runNames) + ", " +
-  JSON.stringify(normalizeHistory(pairs)) + ", " +
+  JSON.stringify(calcGlobalPlot(pairs)) + ", " +
   JSON.stringify(errorsA) + ", " +
   JSON.stringify(errorsB);
 // The output file is main.html, not index.html, in order to avoid docusaurus bug(?).
