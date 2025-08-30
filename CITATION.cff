@@ -12,8 +12,8 @@ authors:
     family-names: Petr
     email: petr@vilim.eu
     affiliation: OptalCP
-  - given-names: Pons
-    family-names: Diego Olivier Fernandez
+  - given-names: Diego Olivier
+    family-names: Fernandez Pons
     affiliation: OptalCP
   - name: et. al.
 url: "https://github.com/ScheduleOpt/optalcp-benchmarks"
