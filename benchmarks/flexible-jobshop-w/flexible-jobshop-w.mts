@@ -1,71 +1,99 @@
-import * as CP from '@scheduleopt/optalcp';
-import * as utils from '../../utils/utils.mjs';
-import { strict as assert } from 'assert';
-import * as fs from 'fs';
+// Flexible Job Shop Scheduling Problem with Worker Flexibility (FJSSP-W)
+//
+// FJSSP-W extends the classical Flexible Job Shop Scheduling Problem by adding
+// worker flexibility constraints. Each job consists of a sequence of operations
+// that must be executed in order. Each operation can be processed on one of
+// several eligible machines, and additionally requires a worker to be present.
+// The processing time depends on both the machine and worker assignment.
+// The goal is to minimize the makespan (total completion time of all jobs).
+//
+// Constraints:
+//   - Operations within a job must be executed sequentially (precedence)
+//   - Each machine can process at most one operation at a time (no overlap)
+//   - Each worker can work on at most one operation at a time (no overlap)
+//   - Each operation must be assigned to exactly one (machine, worker) pair
+//
+// Reference: Hutter et al. "A Benchmarking Environment for Worker Flexibility
+// in Flexible Job Shop Scheduling Problems", arXiv:2501.16159, 2025.
 
-let flatAlternatives = false;
-let verbose = false;
+import { strict as assert } from "node:assert";
+import * as fs from "node:fs";
+import * as zlib from "node:zlib";
+import * as CP from "@scheduleopt/optalcp";
 
-type ModelWithVariables = {
-  model: CP.Model;
-  // For each operation (order by job and then by operation), all its possible modes:
-  allModes: CP.IntervalVar[][];
+function readFile(filename: string): string {
+  return filename.endsWith(".gz")
+    ? zlib.gunzipSync(fs.readFileSync(filename), {}).toString()
+    : fs.readFileSync(filename, "utf8");
 }
 
-function defineModelAndModes(filename: string): ModelWithVariables {
+function makeModelName(benchmarkName: string, filename: string): string {
+  const instance = filename
+    .replaceAll(/[/\\]/g, "_")
+    .replace(/^data_/, "")
+    .replace(/\.gz$/, "")
+    .replace(/\.json$/, "")
+    .replace(/\....?$/, "");
+  return `${benchmarkName}_${instance}`;
+}
+
+let flatAlternatives = false;
+let redundantCumul = false;
+let verbose = false;
+
+function defineModel(filename: string): CP.Model {
   // Read the input file into a string, possibly unzip it if it ends with .gz:
-  let inputText = utils.readFile(filename);
+  const inputText = readFile(filename);
   // The first line may contain 2 or 3 numbers. The third number should be ignored.
   // Therefore find end of the first line:
-  let firstEOL = inputText.indexOf('\n');
+  const firstEOL = inputText.indexOf('\n');
   // The first line has the following format:
   // <nbJobs> <nbMachines> <nbWorkers> (avg number of machines per operation)
   // The avg number of machines per operation is optional and it is in brackets. This model does not use it.
   // Convert first line into an array of numbers. Ignore characters '(' and ')'.
-  let firstLine = inputText.slice(0, firstEOL).trim().replace(/[()]/g, '').split(/\s+/).map(Number);
+  const firstLine = inputText.slice(0, firstEOL).trim().replace(/[()]/g, '').split(/\s+/).map(Number);
   // Similarly convert the rest of the file into an array of numbers:
-  let input = inputText.slice(firstEOL+1).trim().split(/\s+/).map(Number);
+  const input = inputText.slice(firstEOL+1).trim().split(/\s+/).map(Number);
 
-  let model = new CP.Model(utils.makeModelName('flexible-jobshop-w', filename));
-  const nbJobs = firstLine[0] as number;
-  const nbMachines = firstLine[1] as number;
-  const nbWorkers = firstLine[2] as number;
+  const model = new CP.Model(makeModelName('flexible-jobshop-w', filename));
+  const nbJobs = firstLine[0];
+  const nbMachines = firstLine[1];
+  const nbWorkers = firstLine[2];
   if (verbose)
     console.log(`FJSSP-W with ${nbMachines} machines, ${nbJobs} jobs and ${nbWorkers} workers.`);
 
-  // For each machine create an array of operations executed on it.
-  // Initialize all machines by empty arrays:
-  let machines: CP.IntervalVar[][] = [];
-  for (let j = 0; j < nbMachines; j++)
-    machines[j] = [];
-  // Similarly for workers:
-  let workers: CP.IntervalVar[][] = [];
-  for (let w = 0; w < nbWorkers; w++)
-    workers[w] = [];
+  // For each machine/worker, an array of operations executed on it:
+  const machines: CP.IntervalVar[][] = Array.from({ length: nbMachines }, () => []);
+  const workers: CP.IntervalVar[][] = Array.from({ length: nbWorkers }, () => []);
 
   // End times of each job:
-  let ends: CP.IntExpr[] = [];
+  const ends: CP.IntExpr[] = [];
 
-  let allModes: CP.IntervalVar[][] = [];
+  // For --redundantCumul: cumulative pulses across all operations
+  const allOperations: CP.CumulExpr[] = [];
+
+  let idx = 0; // Index for reading input array
 
   for (let i = 0; i < nbJobs; i++) {
-    let nbOperations = input.shift() as number;
+    const nbOperations = input[idx++];
     // Previous task in the job:
     let prev: CP.IntervalVar | undefined = undefined;
     for (let j = 0; j < nbOperations; j++) {
       // Create a new operation (master of alternative constraint):
-      let operation = model.intervalVar({ name: `J${i + 1}O${j + 1}` });
-      let nbMachineChoices = input.shift() as number;
-      let modes: CP.IntervalVar[] = [];
-      let variantsOnWorker: CP.IntervalVar[][] = Array.from({ length: nbWorkers }, () => []);
-      let variantsOnMachine: CP.IntervalVar[][] = Array.from({ length: nbMachines }, () => []);
+      const operation = model.intervalVar({ name: `J${i + 1}O${j + 1}` });
+      if (redundantCumul)
+        allOperations.push(operation.pulse(1));
+      const nbMachineChoices = input[idx++];
+      const modes: CP.IntervalVar[] = [];
+      const variantsOnWorker: CP.IntervalVar[][] = Array.from({ length: nbWorkers }, () => []);
+      const variantsOnMachine: CP.IntervalVar[][] = Array.from({ length: nbMachines }, () => []);
       for (let k = 0; k < nbMachineChoices; k++) {
-        const machineId = input.shift() as number;
-        let nbWorkerChoices = input.shift() as number;
+        const machineId = input[idx++];
+        const nbWorkerChoices = input[idx++];
         for (let w = 0; w < nbWorkerChoices; w++) {
-          const workerId = input.shift() as number;
-          const duration = input.shift() as number;
-          let mode = model.intervalVar({ length: duration, optional: true, name: `J${i + 1}O${j + 1}_M${machineId}W${workerId}` });
+          const workerId = input[idx++];
+          const duration = input[idx++];
+          const mode = model.intervalVar({ length: duration, optional: true, name: `J${i + 1}O${j + 1}_M${machineId}W${workerId}` });
           if (flatAlternatives) {
             // In the input file machines are counted from 1, we count from 0. The same for workers.
             machines[machineId - 1].push(mode);
@@ -80,20 +108,20 @@ function defineModelAndModes(filename: string): ModelWithVariables {
       if (flatAlternatives)
         model.alternative(operation, modes);
       else {
-        let operationsOnMachine: CP.IntervalVar[] = [];
+        const operationsOnMachine: CP.IntervalVar[] = [];
         for (let m = 0; m < nbMachines; m++) {
           if (variantsOnMachine[m].length > 0) {
-            let subOperation = model.intervalVar({ name: `J${i + 1}O${j + 1}_M${m + 1}`, optional: true });
+            const subOperation = model.intervalVar({ name: `J${i + 1}O${j + 1}_M${m + 1}`, optional: true });
             model.alternative(subOperation, variantsOnMachine[m]);
             operationsOnMachine.push(subOperation);
             machines[m].push(subOperation);
           }
         }
         model.alternative(operation, operationsOnMachine);
-        let operationsOnWorker: CP.IntervalVar[] = [];
+        const operationsOnWorker: CP.IntervalVar[] = [];
         for (let w = 0; w < nbWorkers; w++) {
           if (variantsOnWorker[w].length > 0) {
-            let subOperation = model.intervalVar({ name: `J${i + 1}O${j + 1}_W${w + 1}`, optional: true });
+            const subOperation = model.intervalVar({ name: `J${i + 1}O${j + 1}_W${w + 1}`, optional: true });
             model.alternative(subOperation, variantsOnWorker[w]);
             operationsOnWorker.push(subOperation);
             workers[w].push(subOperation);
@@ -102,7 +130,6 @@ function defineModelAndModes(filename: string): ModelWithVariables {
         model.alternative(operation, operationsOnWorker);
       }
 
-      allModes.push(modes);
       // Operation has a predecessor:
       if (prev !== undefined)
         prev.endBeforeStart(operation);
@@ -113,96 +140,41 @@ function defineModelAndModes(filename: string): ModelWithVariables {
   }
 
   // Tasks on each machine cannot overlap:
-  for (let j = 0; j < nbMachines; j++)
-    model.noOverlap(machines[j]);
+  for (let m = 0; m < nbMachines; m++)
+    model.noOverlap(machines[m]);
   // Tasks on each worker cannot overlap:
   for (let w = 0; w < nbWorkers; w++)
     model.noOverlap(workers[w]);
 
+  // Redundant cumulative: at most min(nbMachines, nbWorkers) operations simultaneously
+  if (redundantCumul)
+    model.sum(allOperations).le(Math.min(nbMachines, nbWorkers));
+
   // Minimize the makespan:
-  let makespan = model.max(ends);
+  const makespan = model.max(ends);
   makespan.minimize();
 
   // There shouldn't be anything more in the input:
-  assert(input.length == 0);
+  assert(idx === input.length);
 
-  return { model, allModes };
+  return model;
 }
 
-// Run the FJSSP-W model and write the solution to a JSON file.
-// The solution consists of 3 vectors for the FJSSP-W:
-//   * the first one containing the start times of each operation,
-//   * the second the assigned machine for each operation,
-//   * and the third the assigned worker for each operation.
-// The order of the operations is fixed across all of these vectors.
-async function runFJSSPWJson(inputFilename: string, outputJSON: string, params: CP.BenchmarkParameters) {
-  let { model, allModes } = defineModelAndModes(inputFilename);
-  let result = await CP.solve(model, params);
-  let solution = result.bestSolution;
-  let startTimes = [];
-  let machineAssignments = [];
-  let workerAssignments = [];
-  if (solution) {
-    for (const modes of allModes) {
-      for (const modeVar of modes) {
-        if (solution.isAbsent(modeVar))
-          continue;
-        const start = solution.getStart(modeVar);
-        const machineId = modeVar.getName()!.match(/M(\d+)/)?.[1];
-        assert(machineId !== undefined);
-        const workerId = modeVar.getName()!.match(/W(\d+)/)?.[1];
-        assert(workerId !== undefined);
-        startTimes.push(start);
-        machineAssignments.push(parseInt(machineId));
-        workerAssignments.push(parseInt(workerId));
-        break; // Only one mode can be assigned to the operation.
-      }
-    }
-  }
-  let output = {
-    objectiveHistory: result.objectiveHistory,
-    lowerBoundHistory: result.lowerBoundHistory,
-    duration: result.duration,
-    startTimes,
-    machineAssignments,
-    workerAssignments
-  };
-  fs.writeFileSync(outputJSON, JSON.stringify(output));
-}
-
-// A function usable for CP.benchmark():
-function defineModel(filename: string): CP.Model {
-  return defineModelAndModes(filename).model;
-}
-
-// Default parameter settings that can be overridden on command line:
-let params: CP.BenchmarkParameters = {
-  usage: "Usage: node flexible-jobshop-w.mjs [OPTIONS] INPUT_FILE1 [INPUT_FILE2] ..\n\n" +
-	  "FJSSP-W specific options:\n" +
-	  "  --flatAlternatives         Don't use hierarchical alternative constraints (for worker and for machine).\n" +
-    "  --verbose                  Enable verbose output.\n" +
-    "  --fjssp-w-json <filename>  Write the solution, LB and UB history to a JSON file.\n" +
-    "                             Only single input file is supported."
+const params: CP.BenchmarkParameters = {
+  usage:
+    "Usage: node flexible-jobshop-w.mjs [OPTIONS] INPUT_FILE1 [INPUT_FILE2] ..\n\n" +
+    "FJSSP-W specific options:\n" +
+    "  --flatAlternatives  Don't use hierarchical alternative constraints (for worker and for machine)\n" +
+    "  --redundantCumul    Add a redundant cumul constraint\n" +
+    "  --verbose           Enable verbose output",
 };
+const restArgs = CP.parseSomeBenchmarkParameters(params);
 
-let commandLineArgs = process.argv.slice(2);
-let fjsspWJsonFilename = utils.getStringOption("--fjssp-w-json", "", commandLineArgs);
-flatAlternatives = utils.getBoolOption("--flatAlternatives", commandLineArgs);
-verbose = utils.getBoolOption("--verbose", commandLineArgs);
+const instanceFiles = restArgs.filter((arg) => {
+  if (arg === "--flatAlternatives") { flatAlternatives = true; return false; }
+  if (arg === "--redundantCumul") { redundantCumul = true; return false; }
+  if (arg === "--verbose") { verbose = true; return false; }
+  return true;
+});
 
-// The model can be run in two modes:
-// * Using CP.benchmark when --fjssp-w-json option is not specified.
-// * Using CP.solve when --fjssp-w-json option is specified. In this case the solution is written to a JSON file.
-// So, depending on --fjssp-w0json option, the command line may contain benchmark parameters.
-
-if (fjsspWJsonFilename === "") {
-  let restArgs = CP.parseSomeBenchmarkParameters(params, commandLineArgs);
-  CP.benchmark(defineModel, restArgs, params);
-} else {
-  let restArgs = CP.parseSomeParameters(params, commandLineArgs);
-  if (restArgs.length !== 1) {
-    console.error("Error: --fjssp-w-json option requires exactly one input file.");
-    process.exit(1);
-  }
-  runFJSSPWJson(restArgs[0], fjsspWJsonFilename, params);
-}
+CP.benchmark(defineModel, instanceFiles, params);

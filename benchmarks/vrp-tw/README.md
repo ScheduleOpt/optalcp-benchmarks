@@ -1,5 +1,7 @@
 # Vehicle Routing Problem with Time Windows
 
+A fleet of capacitated vehicles must serve a set of customers, each with a demand and a time window specifying when service can begin. All vehicles start and end at a central depot. The goal is to find routes that serve all customers within their time windows while respecting vehicle capacities, minimizing the chosen objective (e.g., total travel time, makespan, or number of vehicles used).
+
 ## Credits
 
 The initial version of this benchmark was written by Vít Knobloch.
@@ -12,7 +14,14 @@ Some data files are too big. The transition matrix does not fit into Node.js mem
 
 ## Known solutions
 
-Knows solutions (also from [CVRPLIB](http://vrp.galgos.inf.puc-rio.br/index.php/en/)) can be found in the directory [`known-solutions`](known-solutions).
+Known solutions (also from [CVRPLIB](http://vrp.galgos.inf.puc-rio.br/index.php/en/)) can be found in the directory [`known-solutions`](known-solutions).
+
+## About the model
+
+The model is similar to the model for [Capacitated Vehicle Routing Problem](../cvrp). There are a few differences:
+
+* Nodes have service times greater than 0. Because of that, there are no issues with the triangular inequality as in the [CVRP benchmark](../cvrp).
+* Nodes have ready and due times, which are reflected by the minimum and maximum start times of the visits. The due date is not the maximum end time because sometimes `ready + service` is greater than `due`.
 
 ## Benchmark-specific options
 
@@ -27,26 +36,19 @@ VRP-TW options:
 Objective types are:
 
 * **makespan**: the time the last vehicle returns to the depot
-* **traveltime**: the total time spent by traveling (wihtout wating and without service times)
-* **totaltime**: the total time spent by all vehicles (with traveling, waiting and service times)
-* **path**: the time spent not at customer (i.e., the total traveling and waiting time)
+* **traveltime**: the total time spent traveling (without waiting and without service times)
+* **totaltime**: the total time of all vehicles (with traveling, waiting and service times)
+* **path**: the time not spent at customers (i.e., the total traveling and waiting time)
 * **nbvehicles**: the minimum number of vehicles used
-* **nbvehicle,traveltime**: `1,000,000 * nbvehicles + traveltime`
-
-## About the model
-
-The model is similar to the model for [Capacitated Vehicle Routing Problem](../cvrp). There are a few differences:
-
-* Nodes have service times bigger than 0. Because of that, there are no issues with the triangular inequality as in the [CVRP benchmark](../cvrp).
-* Nodes have ready and due times, which are reflected by the minimum and maximum start times of the visits. The due date is not the maximum end time because sometimes `ready + service` is bigger than `due`.
+* **nbvehicles,traveltime**: `1,000,000 * nbvehicles + traveltime`
 
 ## Rounding
 
-The nodes are given by 2D coordinates, their distances are computed by the Euclidean distance. As OptalCP requires integer distances, the distances are rounded. The parameter `--rounding` can be set to `round` or `ceil`. The default is `round`.
+The nodes are given by 2D coordinates, distances are computed using Euclidean distance. As OptalCP requires integer distances, the distances are rounded. The parameter `--rounding` can be set to `round` or `ceil`. The default is `ceil`.
 
 ## Scaling
 
-Some known solutions give a non-integer path length, but OptalCP works only with integers. To get higher precision, all the input values can be multiplied by a constant factor given by `--scale <number>`. The objective value is increased by the scaling factor, too.
+Some known solutions give a non-integer path length, but OptalCP works only with integers. To get higher precision, all the input values can be multiplied by a constant factor given by `--scale <number>`. The objective value is also scaled accordingly.
 
 ## Symmetry breaking
 

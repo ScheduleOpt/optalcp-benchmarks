@@ -1,32 +1,57 @@
-import { exit } from 'process';
-import { strict as assert } from 'assert';
-import * as CP from '@scheduleopt/optalcp';
-import * as utils from '../../utils/utils.mjs';
+/**
+ * Multi-Mode Resource-Constrained Project Scheduling Problem (MMRCPSP).
+ *
+ * Jobs must be scheduled respecting precedence constraints. Each job has multiple
+ * execution modes with different durations and resource requirements. Renewable
+ * resources have per-time-step capacity limits. Non-renewable resources have
+ * total capacity limits across the entire project.
+ *
+ * Objective: minimize non-renewable resource overflow (as penalty), then makespan.
+ */
 
-function removeExpected(arr: Array<number>, expected: number) {
-  let v = arr.shift();
-  assert(v == expected);
+import { strict as assert } from 'node:assert';
+import * as fs from "node:fs";
+import { exit } from 'node:process';
+import * as zlib from "node:zlib";
+import * as CP from "@scheduleopt/optalcp";
+
+function readFile(filename: string): string {
+  return filename.endsWith(".gz")
+    ? zlib.gunzipSync(fs.readFileSync(filename), {}).toString()
+    : fs.readFileSync(filename, "utf8");
 }
 
-// Effect on MMLIB50/J5079_4 with UB 67 (infeasible): 17% slower, 37% less branches
+function makeModelName(benchmarkName: string, filename: string): string {
+  const instance = filename
+    .replaceAll(/[/\\]/g, "_")
+    .replace(/^data_/, "")
+    .replace(/\.gz$/, "")
+    .replace(/\.json$/, "")
+    .replace(/\....?$/, "");
+  return `${benchmarkName}_${instance}`;
+}
+
+function skipExpected(arr: Array<number>, idx: number, expected: number): number {
+  const v = arr[idx];
+  assert(v === expected);
+  return idx + 1;
+}
+
+// Command-line options:
+// Add redundant cumulative constraints on main job intervals (variable pulse heights)
 let useRedundantCumuls = false;
-
-// Effect on MMLIB50/J5079_4 with UB 67 (infeasible): 25% slower, 1% less branches
+// Add a single cumulative constraint summing all renewable resources
 let useGlobalCumul = false;
-
-// Effect on MMLIB50/J5079_4 with UB 67 (infeasible): 19% faster, 36% less branches
+// Add a single constraint summing all non-renewable resources
 let useGlobalNonRenewable = false;
 
-// Effect of useGlobalNonRenewable + useRedundantCumuls
-// on MMLIB50/J5079_4 with UB 67 (infeasible): 10% faster, 50% less branches
+function defineModel(filename: string): CP.Model {
+  let inputTxt = readFile(filename);
+  const model = new CP.Model(makeModelName("mmrcpsp", filename));
 
-function defineModel(filename: string) {
-  let inputTxt = utils.readFile(filename);
-  let model = new CP.Model(utils.makeModelName("mmrcpsp", filename));
-
-  let hasProjectInformation = /PROJECT INFORMATION:/.test(inputTxt);
+  const hasProjectInformation = /PROJECT INFORMATION:/.test(inputTxt);
+  // Remove text labels from the input file, keeping only numbers:
   inputTxt = inputTxt.
-    //  Get rid of unnecessary strings:
     // e.g.: ************************************************************************
     replace(/^\*\**$/gm, '')
     // e.g.: file with basedata            : J12022_.BAS
@@ -34,10 +59,9 @@ function defineModel(filename: string) {
     // e.g.: initial value random generator: 22936
     .replace(/initial value random generator: [0-9]*/, '')
     // e.g.: projects                      :  1
-    .replace(/projects  *:  1/, '')
+    .replace(/projects +: {2}1/, '')
     // e.g.: jobs (incl. supersource/sink ):
     .replace(/jobs *\(incl. supersource\/sink \):/, '')
-    // e.g.: horizon                       :
     // e.g.: RESOURCES
     .replace(/RESOURCES/, '')
     // e.g.:  - renewable                 :  4   R
@@ -67,7 +91,7 @@ function defineModel(filename: string) {
     // e.g.: R 1  R 2  N 1  N 2
     .replace(/^[\t ]*R 1[\t NR0-9]*$/gm, '')
 
-  // After this preprocessing the there should be only numbers:
+  // After this preprocessing there should be only numbers:
   if (!inputTxt.match(/^[ \t0-9\r\n]*$/)) {
     console.log("Failed to remove garbage from the input file. Result after replace:");
     console.log(inputTxt);
@@ -75,58 +99,57 @@ function defineModel(filename: string) {
   }
 
   // Convert the input into an array of numbers:
-  let input = inputTxt.trim().split(/\s+/).map(Number);
+  const input = inputTxt.trim().split(/\s+/).map(Number);
+  let idx = 0;
 
-  // Read initial numbers at the beginning of the file:
-  let nbJobs = input.shift() as number;
-  let nbRealJobs = nbJobs - 2;
-  let nbResources = input.shift() as number;
-  let nbNonRenewable = input.shift() as number;
+  // Problem dimensions:
+  const nbJobs = input[idx++];
+  const nbRealJobs = nbJobs - 2; // Excluding dummy source and sink jobs
+  const nbResources = input[idx++]; // Renewable resources
+  const nbNonRenewable = input[idx++];
 
   if (hasProjectInformation) {
-    let pronr = input.shift() as number;
-    let nbNonDummyJobs = input.shift() as number;
-    let releaseDate = input.shift() as number;
-    let dueDate = input.shift() as number; // unused
-    let tardCost = input.shift() as number; // unused
-    let mpmTime = input.shift() as number; // unused
-    assert(pronr == 1);
-    assert(nbNonDummyJobs == nbRealJobs);
-    assert(releaseDate == 0);
+    const pronr = input[idx++];
+    const nbNonDummyJobs = input[idx++];
+    const releaseDate = input[idx++];
+    const dueDate = input[idx++]; // unused
+    const tardCost = input[idx++]; // unused
+    const mpmTime = input[idx++]; // unused
+    assert(pronr === 1);
+    assert(nbNonDummyJobs === nbRealJobs);
+    assert(releaseDate === 0);
   }
 
-  // Create interval variables
-  let jobs: CP.IntervalVar[] = [];
+  // Create main interval variable for each job (mode selection via alternative below):
+  const jobs: CP.IntervalVar[] = [];
   for (let j = 0; j < nbRealJobs; j++) {
-    let itv = model.intervalVar({ name: "J" + (j + 1) });
+    const itv = model.intervalVar({ name: `J${j + 1}` });
     jobs.push(itv);
   }
 
-  // Ignore precedence relations for the dummy source job at the beginning:
-  removeExpected(input, 1); // job ID
-  removeExpected(input, 1); // number of modes
-  let nbSuccessors = input.shift() as number;
+  // Skip precedence relations for the dummy source job:
+  idx = skipExpected(input, idx, 1); // job ID
+  idx = skipExpected(input, idx, 1); // number of modes
+  let nbSuccessors = input[idx++];
   for (let s = 0; s < nbSuccessors; s++)
-    input.shift();
+    idx++;
 
-  // Number of modes for the given job:
-  let nbModes: number[] = [];
-  // Preparation for the makespan: array of end times of the last jobs
-  let ends: CP.IntExpr[] = [];
+  const nbModes: number[] = []; // Number of modes for each job (read from precedence section)
+  const ends: CP.IntExpr[] = []; // End times of jobs with no successors (for makespan)
 
-  // Read precedence relations for the real jobs:
+  // Read precedence relations and add endBeforeStart constraints:
   for (let j = 0; j < nbRealJobs; j++) {
-    removeExpected(input, j + 2); // job ID
-    nbModes[j] = input.shift() as number;
+    idx = skipExpected(input, idx, j + 2); // job ID
+    nbModes[j] = input[idx++];
     let isLast = true;
-    let predecessor = jobs[j];
-    nbSuccessors = input.shift() as number;
+    const predecessor = jobs[j];
+    nbSuccessors = input[idx++];
     for (let s = 0; s < nbSuccessors; s++) {
-      let sID = input.shift() as number;
+      const sID = input[idx++];
       assert(sID >= 2 && sID <= nbJobs);
       // Ignore sink job:
       if (sID < nbJobs) {
-        let successor = jobs[sID - 2];
+        const successor = jobs[sID - 2];
         predecessor.endBeforeStart(successor);
         isLast = false;
       }
@@ -135,126 +158,125 @@ function defineModel(filename: string) {
       ends.push(predecessor.end());
   }
 
-  // Ignore precedence relations of the sink:
-  removeExpected(input, nbJobs); // jobID
-  removeExpected(input, 1); // mode
-  removeExpected(input, 0); // number of successors
+  // Skip precedence relations of the dummy sink job:
+  idx = skipExpected(input, idx, nbJobs); // jobID
+  idx = skipExpected(input, idx, 1); // mode
+  idx = skipExpected(input, idx, 0); // number of successors
 
-  // Prepare cumulative resources:
-  let cumuls: CP.CumulExpr[][] = []
-  let redundantCumuls: CP.CumulExpr[][] = [];
-  let globalCumul: CP.CumulExpr[] = [];
-  for (let r = 0; r < nbResources; r++) {
-    cumuls.push([]);
-    redundantCumuls.push([]);
-  }
-  // Prepare non-renewable resources
-  let nonRenewables: CP.IntExpr[][] = [];
-  let globalNonRenewable: CP.IntExpr[] = [];
-  for (let n = 0; n < nbNonRenewable; n++)
-    nonRenewables.push([]);
+  // Cumulative expressions for renewable resources (per-resource capacity limits):
+  const cumuls: CP.CumulExpr[][] = Array.from({ length: nbResources }, () => []);
+  const redundantCumuls: CP.CumulExpr[][] = Array.from({ length: nbResources }, () => []);
+  const globalCumul: CP.CumulExpr[] = [];
+  // Integer expressions for non-renewable resources (total usage across project):
+  const nonRenewables: CP.IntExpr[][] = Array.from({ length: nbNonRenewable }, () => []);
+  const globalNonRenewable: CP.IntExpr[] = [];
 
-  // Ignore duration and resource requirements of source job:
-  removeExpected(input, 1); // jobID
-  removeExpected(input, 1); // mode
-  removeExpected(input, 0); // duration
+  // Skip duration and resource requirements of dummy source job:
+  idx = skipExpected(input, idx, 1); // jobID
+  idx = skipExpected(input, idx, 1); // mode
+  idx = skipExpected(input, idx, 0); // duration
   for (let r = 0; r < nbResources; r++)
-    removeExpected(input, 0); // required capacity
+    idx = skipExpected(input, idx, 0); // required capacity
   for (let n = 0; n < nbNonRenewable; n++)
-    removeExpected(input, 0); // required capacity
+    idx = skipExpected(input, idx, 0); // required capacity
 
-  // Parse job durations and resource requirements
+  // Parse job modes with durations and resource requirements:
   for (let j = 0; j < nbRealJobs; j++) {
-    removeExpected(input, j + 2); // jobID
-    let modes: CP.IntervalVar[] = [];
+    idx = skipExpected(input, idx, j + 2); // jobID
+    const modes: CP.IntervalVar[] = []; // Optional interval for each mode
 
-    let renewableRequirements: number[][] = [];
-    for (let r = 0; r < nbResources; r++)
-      renewableRequirements[r] = [];
+    const renewableRequirements: number[][] = Array.from({ length: nbResources }, () => []);
     for (let a = 0; a < nbModes[j]; a++) {
-      removeExpected(input, a + 1); // mode
-      let duration = input.shift() as number;
-      let mode = model.intervalVar({ optional: true, length: duration, name: "J" + (j + 1) + "M" + (a + 1) });
+      idx = skipExpected(input, idx, a + 1); // mode
+      const duration = input[idx++];
+      const mode = model.intervalVar({ optional: true, length: duration, name: `J${j + 1}M${a + 1}` });
       modes.push(mode);
-      let totalC =  0;
+      let totalC = 0;
       for (let r = 0; r < nbResources; r++) {
-        let c = input.shift() as number;
+        const c = input[idx++];
         renewableRequirements[r][a] = c;
         totalC += c;
       }
       globalCumul.push(modes[a].pulse(totalC));
       totalC = 0;
       for (let n = 0; n < nbNonRenewable; n++) {
-        let c = input.shift() as number;
+        const c = input[idx++];
         nonRenewables[n].push(mode.presence().times(c));
         totalC += c;
       }
       globalNonRenewable.push(mode.presence().times(totalC));
     }
+    // Add cumulative pulses for renewable resources:
     for (let r = 0; r < nbResources; r++) {
-      // TODO:1 This kind of presolve should be done in the engine itself
       let minC = renewableRequirements[r][0];
       let maxC = minC;
       for (let a = 1; a < nbModes[j]; a++) {
         minC = Math.min(minC, renewableRequirements[r][a]);
         maxC = Math.max(maxC, renewableRequirements[r][a]);
       }
-      if (maxC == 0)
-        continue;
-      if (minC == maxC) {
+      if (maxC === 0)
+        continue; // Job doesn't use this resource in any mode
+      if (minC === maxC) {
+        // All modes have the same requirement: use main job interval
         cumuls[r].push(jobs[j].pulse(minC));
         redundantCumuls[r].push(jobs[j].pulse(minC));
         continue;
       }
-      let heights: CP.IntExpr[] = [];
+      // Variable requirement: add pulse for each mode interval
+      const heights: CP.IntExpr[] = [];
       for (let a = 0; a < nbModes[j]; a++) {
-        let c = renewableRequirements[r][a];
+        const c = renewableRequirements[r][a];
         heights.push(modes[a].presence().times(c));
-        if (c == 0)
+        if (c === 0)
           continue;
         cumuls[r].push(modes[a].pulse(c));
       }
+      // Redundant: pulse on main interval with variable height
       redundantCumuls[r].push(jobs[j].pulse(model.sum(heights)));
     }
+    // Exactly one mode must be selected for each job:
     model.alternative(jobs[j], modes);
   }
 
-  // Ignore duration and resource requirements of the sink:
-  removeExpected(input, nbJobs); // jobID
-  removeExpected(input, 1); // mode
-  removeExpected(input, 0); // duration
+  // Skip duration and resource requirements of dummy sink job:
+  idx = skipExpected(input, idx, nbJobs); // jobID
+  idx = skipExpected(input, idx, 1); // mode
+  idx = skipExpected(input, idx, 0); // duration
   for (let r = 0; r < nbResources; r++)
-    removeExpected(input, 0); // required capacity
+    idx = skipExpected(input, idx, 0); // required capacity
   for (let n = 0; n < nbNonRenewable; n++)
-    removeExpected(input, 0); // required capacity
+    idx = skipExpected(input, idx, 0); // required capacity
 
-  // Read available resource capacities:
+  // Renewable resource capacity constraints:
   let globalC = 0;
   for (let r = 0; r < nbResources; r++) {
-    let c = input.shift() as number;
+    const c = input[idx++];
     assert(c > 0);
     globalC += c;
-    model.cumulSum(cumuls[r]).cumulLe(c);
+    model.sum(cumuls[r]).le(c);
     if (useRedundantCumuls)
-      model.cumulSum(redundantCumuls[r]).cumulLe(c);
+      model.sum(redundantCumuls[r]).le(c);
   }
   if (useGlobalCumul)
-    model.cumulSum(globalCumul).cumulLe(globalC);
+    model.sum(globalCumul).le(globalC);
 
-  let cost: CP.IntExpr[] = [];
+  // Non-renewable resource constraints (soft: overflow adds to cost):
+  const cost: CP.IntExpr[] = [];
   globalC = 0;
   for (let n = 0; n < nbNonRenewable; n++) {
-    let c = input.shift() as number;
+    const c = input[idx++];
     globalC += c;
-    let used = model.sum(nonRenewables[n]);
-    let overflow = model.max2(0, used.minus(c));
+    const used = model.sum(nonRenewables[n]);
+    const overflow = model.max2(0, used.minus(c));
     cost.push(overflow);
   }
   if (useGlobalNonRenewable) {
-    let used = model.sum(globalNonRenewable);
-    let overflow = model.max2(0, used.minus(globalC));
+    const used = model.sum(globalNonRenewable);
+    const overflow = model.max2(0, used.minus(globalC));
     cost.push(overflow);
   }
+
+  // Objective: minimize overflow penalty (×1000) + makespan (lexicographic-like):
   model.minimize(model.sum(cost).times(1000).plus(model.max(ends)));
 
   return model;
@@ -262,28 +284,21 @@ function defineModel(filename: string) {
 
 
 // Default parameter settings that can be overridden on command line:
-let params: CP.BenchmarkParameters = {
-  usage: "Usage: node mmrcpsp.mjs [OPTIONS] INPUT_FILE [INPUT_FILE2] .."
+const params: CP.BenchmarkParameters = {
+  usage:
+    "Usage: node mmrcpsp.mjs [OPTIONS] INPUT_FILE [INPUT_FILE2] ..\n\n" +
+    "MMRCPSP options:\n" +
+    "  --redundantCumuls     Add redundant cumulative constraints\n" +
+    "  --globalCumul         Add global cumulative constraint\n" +
+    "  --globalNonRenewable  Add global non-renewable resource constraint",
 };
-let restArgs = CP.parseSomeBenchmarkParameters(params);
+const restArgs = CP.parseSomeBenchmarkParameters(params);
 
-// Search for --redundantCumuls in the command line arguments:
-let i = 0;
-while (i < restArgs.length) {
-  if (restArgs[i] == "--redundantCumuls") {
-    useRedundantCumuls = true;
-    restArgs.splice(i, 1);
-  }
-  else if (restArgs[i] == "--globalCumul") {
-    useGlobalCumul = true;
-    restArgs.splice(i, 1);
-  }
-  else if (restArgs[i] == "--globalNonRenewable") {
-    useGlobalNonRenewable = true;
-    restArgs.splice(i, 1);
-  }
-  else
-    i++;
-}
+const instanceFiles = restArgs.filter((arg) => {
+  if (arg === "--redundantCumuls") { useRedundantCumuls = true; return false; }
+  if (arg === "--globalCumul") { useGlobalCumul = true; return false; }
+  if (arg === "--globalNonRenewable") { useGlobalNonRenewable = true; return false; }
+  return true;
+});
 
-CP.benchmark(defineModel, restArgs, params);
+CP.benchmark(defineModel, instanceFiles, params);

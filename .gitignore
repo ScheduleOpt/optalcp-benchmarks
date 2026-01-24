@@ -4,3 +4,17 @@
 **/*.map
 **/draft_*
 **/internal_*
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+.venv/
+venv/
+ENV/
+.eggs/
+*.egg-info/
+.mypy_cache/
+.ruff_cache/

@@ -1,43 +1,65 @@
-import * as CP from '@scheduleopt/optalcp';
-import * as utils from '../../utils/utils.mjs'
+/**
+ * Job shop with operators: each operation requires both a machine and an operator.
+ * The number of operators is limited, adding a cumulative resource constraint.
+ */
 
-function defineModel(filename: string, nbOperators: number): CP.Model {
-  let input = utils.readFileAsNumberArray(filename);
-  let model = new CP.Model(utils.makeModelName("jobshop-operators", filename) + "-" + nbOperators + "opers");
+import * as fs from "node:fs";
+import * as zlib from "node:zlib";
+import * as CP from "@scheduleopt/optalcp";
 
-  const nbJobs = input.shift() as number;
-  const nbMachines = input.shift() as number;
+// Command-line option:
+let nbOperators = 0; // 0 means not specified (will error)
 
-  // For each machine, create an array of operations.
-  // Initialize all machines by empty arrays:
-  let machines: CP.IntervalVar[][] = [];
-  for (let j = 0; j < nbMachines; j++)
-    machines[j] = [];
+function readFileAsNumberArray(filename: string): number[] {
+  const content = filename.endsWith(".gz")
+    ? zlib.gunzipSync(fs.readFileSync(filename), {}).toString()
+    : fs.readFileSync(filename, "utf8");
+  return content.trim().split(/\s+/).map(Number);
+}
+
+function makeModelName(filename: string): string {
+  const instance = filename
+    .replaceAll(/[/\\]/g, "_")
+    .replace(/^data_/, "")
+    .replace(/\.gz$/, "")
+    .replace(/\.json$/, "")
+    .replace(/\....?$/, "");
+  return `jobshop-operators_${instance}_${nbOperators}opers`;
+}
+
+function defineModel(filename: string): CP.Model {
+  const input = readFileAsNumberArray(filename);
+  const model = new CP.Model(makeModelName(filename));
+  let idx = 0;
+  const nbJobs = input[idx++];
+  const nbMachines = input[idx++];
+
+  // For each machine, an array of operations executed on it:
+  const machines: CP.IntervalVar[][] = Array.from({ length: nbMachines }, () => []);
 
   // End times of each job:
-  let ends: CP.IntExpr[] = [];
+  const ends: CP.IntExpr[] = [];
 
-  // Array of pulses for each job:
-  let operatorRequirements: CP.CumulExpr[] = [];
+  // Cumulative pulses for operator requirements:
+  const operatorRequirements: CP.CumulExpr[] = [];
 
   for (let i = 0; i < nbJobs; i++) {
-    // Previous task in the job:
     let prev: CP.IntervalVar | undefined = undefined;
     for (let j = 0; j < nbMachines; j++) {
-      // Create a new operation:
-      const machineId = input.shift() as number;
-      const duration = input.shift() as number;
-      let operation = model.intervalVar({ length: duration, name: `J${i + 1}O${j + 1}M${machineId}` });
-      // Operation requires some machine:
+      const machineId = input[idx++];
+      const duration = input[idx++];
+      const operation = model.intervalVar({
+        length: duration,
+        name: `J${i + 1}O${j + 1}M${machineId + 1}`,
+      });
       machines[machineId].push(operation);
-      // And it requires an operator:
+      // Each operation requires an operator:
       operatorRequirements.push(operation.pulse(1));
-      // Operation has a predecessor:
+      // Chain with previous operation:
       if (prev !== undefined)
         prev.endBeforeStart(operation);
       prev = operation;
     }
-    // End time of the job is end time of the last operation:
     ends.push((prev as CP.IntervalVar).end());
   }
 
@@ -45,41 +67,38 @@ function defineModel(filename: string, nbOperators: number): CP.Model {
   for (let j = 0; j < nbMachines; j++)
     model.noOverlap(machines[j]);
 
-  // There is a limited number of operators:
-  model.cumulSum(operatorRequirements).cumulLe(nbOperators);
+  // Limited number of operators:
+  model.sum(operatorRequirements).le(nbOperators);
 
   // Minimize the makespan:
-  let makespan = model.max(ends);
+  const makespan = model.max(ends);
   makespan.minimize();
 
   return model;
 }
 
-
-// Default parameter settings that can be overridden on command line:
-let params: CP.BenchmarkParameters = {
-  usage: "Usage: node jobshop-operators.mjs --nbOperators n [OPTIONS] INPUT_FILE1 [INPUT_FILE2] .."
+const params: CP.BenchmarkParameters = {
+  usage: "Usage: node jobshop-operators.mjs --nbOperators <n> [OPTIONS] INPUT_FILE [INPUT_FILE2] ..\n\n" +
+    "Jobshop-operators options:\n" +
+    "  --nbOperators <number>  Number of available operators (required)",
 };
-let restArgs = CP.parseSomeBenchmarkParameters(params); // It also handles --help
 
-// Parse '--nbOperators' in the remaining command line arguments:
-let index = restArgs.indexOf('--nbOperators');
-if (index === undefined) {
-  console.log("Missing --nbOperators argument.");
+// Simple command-line argument parsing:
+function getIntOption(name: string, defaultValue: number, args: string[]): number {
+  const index = args.indexOf(name);
+  if (index === -1)
+    return defaultValue;
+  const value = Number.parseInt(args[index + 1]);
+  args.splice(index, 2);
+  return value;
+}
+
+const restArgs = CP.parseSomeBenchmarkParameters(params);
+nbOperators = getIntOption("--nbOperators", nbOperators, restArgs);
+
+if (nbOperators <= 0) {
+  console.error("Missing or invalid --nbOperators argument.");
   process.exit(1);
 }
-if (index == restArgs.length - 1) {
-  console.log("Missing value of --nbOperators argument.");
-  process.exit(1);
-}
-let nbOperators = Number(restArgs[index + 1]);
-restArgs.splice(index, 2);
-// All remaining command line arguments are file names.
 
-function defineModelWithOperators(filename: string) {
-  return defineModel(filename, nbOperators);
-}
-
-CP.benchmark(defineModelWithOperators, restArgs, params);
-
-
+CP.benchmark(defineModel, restArgs, params);

@@ -16,7 +16,14 @@
     "url": "https://github.com/ScheduleOpt/optalcp-benchmarks/issues"
   },
   "homepage": "https://github.com/ScheduleOpt/optalcp-benchmarks#readme",
+  "scripts": {
+    "build": "tsc",
+    "check": "tsc --noEmit && biome check .",
+    "lint": "biome check .",
+    "lint:fix": "biome check --write ."
+  },
   "devDependencies": {
+    "@biomejs/biome": "^1.9.4",
     "@tsconfig/node20": "^20.1.4",
     "@types/node": "^22.7.9",
     "typescript": "^5.6.3"

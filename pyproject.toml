@@ -1,0 +1,18 @@
+[project]
+name = "optalcp-benchmarks"
+version = "0.1.0"
+description = "Benchmark collection for the OptalCP constraint programming solver"
+requires-python = ">=3.11"
+dependencies = [
+    "optalcp-bin-preview @ git+https://github.com/ScheduleOpt/optalcp-py-bin-preview@latest",
+]
+
+[project.optional-dependencies]
+dev = ["mypy", "ruff"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I"]  # Errors, pyflakes, warnings, isort

@@ -1,39 +1,61 @@
-import * as CP from '@scheduleopt/optalcp';
-import * as utils from '../../utils/utils.mjs';
+import * as fs from "node:fs";
+import * as zlib from "node:zlib";
+import * as CP from "@scheduleopt/optalcp";
 
+// Blocking job shop: a job blocks its machine until the next machine becomes available.
+// Modeled by allowing operations (except the last in each job) to have variable duration.
+
+function readFileAsNumberArray(filename: string): number[] {
+  const content = filename.endsWith(".gz")
+    ? zlib.gunzipSync(fs.readFileSync(filename), {}).toString()
+    : fs.readFileSync(filename, "utf8");
+  return content.trim().split(/\s+/).map(Number);
+}
+
+function makeModelName(benchmarkName: string, filename: string): string {
+  const instanceName = filename
+    .replaceAll(/[/\\]/g, "_")
+    .replace(/^data_/, "")
+    .replace(/\.gz$/, "")
+    .replace(/\.json$/, "")
+    .replace(/\....?$/, "");
+  return `${benchmarkName}_${instanceName}`;
+}
+
+// Builds and returns a blocking job-shop scheduling model from the given input file.
 function defineModel(filename: string): CP.Model {
-  let input = utils.readFileAsNumberArray(filename);
-  let model = new CP.Model(utils.makeModelName("blocking-jobshop", filename));
-  const nbJobs = input.shift() as number;
-  const nbMachines = input.shift() as number;
+  const input = readFileAsNumberArray(filename);
+  const model = new CP.Model(makeModelName("blocking-jobshop", filename));
+  let idx = 0; // Index for reading input array
+  const nbJobs = input[idx++];
+  const nbMachines = input[idx++];
 
-  // For each machine create an array of operations executed on it.
-  // Initialize all machines by empty arrays:
-  let machines: CP.IntervalVar[][] = [];
-  for (let j = 0; j < nbMachines; j++)
-    machines[j] = [];
+  // For each machine create an array of operations executed on it:
+  const machines: CP.IntervalVar[][] = Array.from(
+    { length: nbMachines },
+    () => [],
+  );
 
   // End times of each job:
-  let ends: CP.IntExpr[] = [];
+  const ends: CP.IntExpr[] = [];
 
   for (let i = 0; i < nbJobs; i++) {
     // Previous task in the job:
     let prev: CP.IntervalVar | undefined = undefined;
     for (let j = 0; j < nbMachines; j++) {
-      // Create a new operation:
-      const machineId = input.shift() as number;
-      const duration = input.shift() as number;
-      // Last operation of the job has fixed duration (non-blocking):
+      const machineId = input[idx++];
+      const duration = input[idx++];
+      // Variable duration models waiting (blocking) on the machine; last operation doesn't block:
       const maxDuration = j < nbMachines - 1 ? CP.IntervalMax : duration;
-      let operation = model.intervalVar({
+      const operation = model.intervalVar({
         length: [duration, maxDuration],
-        name: "J" + (i + 1) + "O" + (j + 1) + "M" + machineId
+        name: `J${i + 1}O${j + 1}M${machineId + 1}`,
       });
-      // Operation requires some machine:
+      // Add operation to its machine:
       machines[machineId].push(operation);
-      // Operation has a predecessor:
+      // Chain to previous operation:
       if (prev !== undefined)
-        prev.endAtStart(operation)
+        prev.endAtStart(operation);
       prev = operation;
     }
     // End time of the job is end time of the last operation:
@@ -45,14 +67,15 @@ function defineModel(filename: string): CP.Model {
     model.noOverlap(machines[j]);
 
   // Minimize the makespan:
-  let makespan = model.max(ends);
+  const makespan = model.max(ends);
   makespan.minimize();
 
   return model;
 }
 
-let params: CP.BenchmarkParameters = {
-  usage: "Usage: node blocking-jobshop.mjs [OPTIONS] INPUT_FILE [INPUT_FILE2] .."
+const params: CP.BenchmarkParameters = {
+  usage:
+    "Usage: node blocking-jobshop.mjs [OPTIONS] INPUT_FILE [INPUT_FILE2] ..",
 };
-let restArgs = CP.parseSomeBenchmarkParameters(params);
+const restArgs = CP.parseSomeBenchmarkParameters(params);
 CP.benchmark(defineModel, restArgs, params);

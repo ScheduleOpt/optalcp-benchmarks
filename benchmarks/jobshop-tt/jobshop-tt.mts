@@ -1,31 +1,70 @@
-import * as CP from '@scheduleopt/optalcp';
-import * as utils from '../../utils/utils.mjs';
+/**
+ * Job Shop Scheduling with sequence-dependent transition times: jobs consist of
+ * operations that must be processed on specific machines in order. Transition
+ * times between operations on the same machine depend on the operation sequence.
+ */
+
+import * as fs from "node:fs";
+import * as zlib from "node:zlib";
+import * as CP from "@scheduleopt/optalcp";
+
+function readFileAsNumberArray(filename: string): number[] {
+  const content = filename.endsWith(".gz")
+    ? zlib.gunzipSync(fs.readFileSync(filename), {}).toString()
+    : fs.readFileSync(filename, "utf8");
+  return content.trim().split(/\s+/).map(Number);
+}
+
+function makeModelName(benchmarkName: string, filename: string): string {
+  const instance = filename
+    .replaceAll(/[/\\]/g, "_")
+    .replace(/^data_/, "")
+    .replace(/\.gz$/, "")
+    .replace(/\.json$/, "")
+    .replace(/\....?$/, "");
+  return `${benchmarkName}_${instance}`;
+}
+
+// Xorshift32 PRNG for reproducible random numbers:
+let randomState = 1;
+function random(): number {
+  randomState ^= randomState << 13;
+  randomState ^= randomState >>> 17;
+  randomState ^= randomState << 5;
+  return (randomState >>> 0) / 0xffffffff;
+}
+
+// Command-line option:
+let maxTT = 20; // Maximum transition time (controls random point spread)
 
 export function defineModel(filename: string): CP.Model {
-  let input = utils.readFileAsNumberArray(filename);
-  let model = new CP.Model(utils.makeModelName("jobshop-tt", filename));
-  const nbJobs = input.shift() as number;
-  const nbMachines = input.shift() as number;
+  const input = readFileAsNumberArray(filename);
+  const model = new CP.Model(makeModelName("jobshop-tt", filename));
+  let idx = 0; // Index for reading input array
+  const nbJobs = input[idx++];
+  const nbMachines = input[idx++];
 
-  // For each machine create an array of operations executed on it.
-  // Initialize all machines by empty arrays:
-  let machines: CP.IntervalVar[][] = [];
-  for (let j = 0; j < nbMachines; j++)
-    machines[j] = [];
+  // Seed the PRNG from instance data for reproducibility:
+  randomState = input.reduce((a, b) => a + b, 0) || 1;
+
+  // For each machine create an array of operations executed on it:
+  const machines: CP.IntervalVar[][] = Array.from({ length: nbMachines }, () => []);
 
   // End times of each job:
-  let ends: CP.IntExpr[] = [];
+  const ends: CP.IntExpr[] = [];
 
   for (let i = 0; i < nbJobs; i++) {
     // Previous task in the job:
     let prev: CP.IntervalVar | undefined = undefined;
     for (let j = 0; j < nbMachines; j++) {
       // Create a new operation:
-      const machineId = input.shift() as number;
-      const duration = input.shift() as number;
-      let operation = model.intervalVar({
+      const machineId = input[idx++];
+      const duration = input[idx++];
+      if (machineId >= nbMachines)
+        throw new Error(`Invalid machine ID ${machineId} (only ${nbMachines} machines)`);
+      const operation = model.intervalVar({
         length: duration,
-        name: "J" + (i + 1) + "O" + (j + 1) + "M" + machineId
+        name: `J${i + 1}O${j + 1}M${machineId + 1}`
       });
       // Operation requires some machine:
       machines[machineId].push(operation);
@@ -39,34 +78,41 @@ export function defineModel(filename: string): CP.Model {
   }
 
   // Tasks on each machine cannot overlap:
-  const maxTT = 20;
   for (let j = 0; j < nbMachines; j++) {
-    // Create random transition times. Start by creating an array 2D points:
-    let points: { x: number, y: number }[] = [];
-    for (let i = 0; i < nbJobs; i++)
-      points.push({ x: Math.round(Math.random() * maxTT), y: Math.round(Math.random() * maxTT) });
-    let matrix: number[][] = [];
-    let types: number[] = [];
-    for (let i = 0; i < nbJobs; i++) {
-      types[i] = i;
-      matrix[i] = [];
-      for (let k = 0; k < nbJobs; k++)
-        matrix[i][k] = Math.round(Math.sqrt(Math.pow(points[i].x - points[k].x, 2) + Math.pow(points[i].y - points[k].y, 2)));
-    }
-    model.noOverlap(model.sequenceVar(machines[j], types), matrix);
+    // Create transition times from random 2D points (Euclidean distances):
+    const points = Array.from({ length: nbJobs }, () => ({
+      x: Math.round(random() * maxTT),
+      y: Math.round(random() * maxTT)
+    }));
+    const matrix = points.map(p1 =>
+      points.map(p2 => Math.round(Math.hypot(p1.x - p2.x, p1.y - p2.y)))
+    );
+    model.noOverlap(model.sequenceVar(machines[j]), matrix);
   }
 
   // Minimize the makespan:
-  let makespan = model.max(ends);
+  const makespan = model.max(ends);
   makespan.minimize();
 
   return model;
 }
 
-// Default time limit unless specified on command line:
-let params = {
-  usage: "Usage: node jobshop.mjs [OPTIONS] INPUT_FILE1 [INPUT_FILE2] .."
+// Command-line argument parsing:
+function getIntOption(name: string, defaultValue: number, args: string[]): number {
+  const index = args.indexOf(name);
+  if (index === -1)
+    return defaultValue;
+  const value = Number.parseInt(args[index + 1]);
+  args.splice(index, 2);
+  return value;
+}
+
+const params: CP.BenchmarkParameters = {
+  usage: "Usage: node jobshop-tt.mjs [OPTIONS] INPUT_FILE1 [INPUT_FILE2] ..\n\n" +
+    "Jobshop-tt options:\n" +
+    "  --maxTT <number>  Maximum transition time (default: 20)"
 };
-// Let CP parse the remaining options:
-let restArgs = CP.parseSomeBenchmarkParameters(params);
+
+const restArgs = CP.parseSomeBenchmarkParameters(params);
+maxTT = getIntOption("--maxTT", maxTT, restArgs);
 CP.benchmark(defineModel, restArgs, params);

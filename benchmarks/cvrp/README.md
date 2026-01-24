@@ -33,7 +33,7 @@ See below for more details.
 
 ## Number of vehicles
 
-The number of vehicles is not given in the input files, but often, it is part of the instance name after `k`. For example, instance `A-n32-k5.vrp` has five vehicles. By default, the benchmark tries to decode the number of vehicles from the file name. The command line parameter `-nbVehicles` can directly set the number of vehicles.
+The number of vehicles is not given in the input files, but often, it is part of the instance name after `k`. For example, instance `A-n32-k5.vrp` has five vehicles. By default, the benchmark tries to decode the number of vehicles from the file name. The command line parameter `--nbVehicles` can directly set the number of vehicles.
 
 ## Triangular inequality
 
@@ -45,7 +45,7 @@ Known optimal solutions are using rounding errors to get to some nodes faster. L
 
 ```text
 31 -> 19 -> 17:   5 + 2 < 8
-16 -> 30 -> 0:   9 + 16 < 2
+16 -> 30 -> 0:   9 + 16 < 26
 ```
 
 Here are the results of OptalCP with different options to compensate for the triangular inequality:
@@ -72,7 +72,7 @@ In general, symmetry breaking is helpful for FDS search but may slow down LNS se
 
 ### Direction symmetry
 
-In the input files, all the transition matrixes are symmetrical (could be checked by `--checkDirectionSymmetry`, as described in [TSP benchmark](../tsp/README.md). Therefore, reversing the order of nodes in a route leads to the equivalent solution. To break it, use the command-line parameter `--breakDirectionSymmetry`.
+In the input files, all the transition matrixes are symmetrical (could be checked by `--checkDirectionSymmetry`), as described in [TSP benchmark](../tsp/README.md). Therefore, reversing the order of nodes in a route leads to the equivalent solution. To break it, use the command-line parameter `--breakDirectionSymmetry`.
 
 ### Vehicle symmetry
 

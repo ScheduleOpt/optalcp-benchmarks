@@ -1,47 +1,42 @@
-# Flexible JobShop
+# Flexible Job Shop Scheduling Problem (FJSSP)
+
+Each job consists of a sequence of operations that must be processed in order.
+Each operation can be processed on one of several machines (flexibility).
+Objective: minimize the makespan (completion time of all jobs).
 
 ## Data files
 
-* Most data files were downloaded from here: <https://people.idsia.ch/~monaldo/fjsp.html>
-* Some more, using "internet way back machine", from: <https://opus.ub.hsu-hh.de/volltexte/2012/2982/pdf/FJSSPinstances.zip>
+Most data files were downloaded from:
+- <https://people.idsia.ch/~monaldo/fjsp.html>
+- <https://opus.ub.hsu-hh.de/volltexte/2012/2982/pdf/FJSSPinstances.zip> (via Internet Archive)
 
-Then it required some data cleaning.
+Note: The Dauzere instances are the same as DPpaulli instances found in some other
+repositories (e.g., FJSSP-W-Benchmarking), just with different naming.
 
-## TODO:
+Additional instances available at:
+- <https://openhsu.ub.hsu-hh.de/entities/publication/12025e3c-16da-4475-ad44-9722bf877c80>
+- <https://github.com/SchedulingLab/fjsp-instances>
 
-* Found other(?) data here: <https://openhsu.ub.hsu-hh.de/entities/publication/12025e3c-16da-4475-ad44-9722bf877c80>
-* And here: <https://github.com/SchedulingLab/fjsp-instances>
-* Are there some new instances? The paper maybe describes some details about the instances.
-* The paper promisses instances with workcenters. However, at the first glance, I don't see them.
+## References
 
-## Papers
+Recent survey paper (the paper itself is inaccessible, but the supplementary material
+is available and includes lower and upper bounds):
 
-There is a recent paper on Flexible Jobshop. It even mentions IBM and Quintiq blogs that already disappeared:
+- [The flexible job shop scheduling problem: A review](https://www.sciencedirect.com/science/article/abs/pii/S037722172300382X)
 
-[The flexible job shop scheduling problem: A review](https://www.sciencedirect.com/science/article/abs/pii/S037722172300382X).
-The paper itself is inaccessible, but supplementary material is available. It includes lower and upper bounds.
+Related paper on multiresource FJSSP:
 
-Another recent paper:
+- Kasapidis, Dauzère-Pérès, Paraskevopoulos, Repoussis, Tarantilis:
+  [On the multiresource flexible job-shop scheduling problem with arbitrary precedence graphs](https://onlinelibrary.wiley.com/doi/full/10.1111/poms.13977)
 
-Kasapidis, Dauzère-Pérès, Paraskevopoulos, Repoussis, Tarantilis:
-[On the multiresource flexible job-shop scheduling problem with arbitrary precedence graphs](https://onlinelibrary.wiley.com/doi/full/10.1111/poms.13977)
+## Historical results
 
-## Quintiq and CP Optimizer
+Quintiq and IBM CP Optimizer published competitive results for FJSSP.
+The original blog posts are no longer available but can be accessed via
+[Internet Archive Wayback Machine](https://web.archive.org/):
 
-There was a blog post on Quintiq web page about achieving new best results for
-flexible jobshop. It is not accessible any more, but it is in internet wayback
-machine:
+- <http://www.quintiq.com/optimization/fjssp-world-records.html>
+- <http://www.quintiq.com/optimization/flexible-job-shop-scheduling-problem-results.html>
+- <https://www.ibm.com/developerworks/community/blogs/jfp/entry/solving_flexible_job_shop_scheduling_problems?lang=en>
 
-<http://www.quintiq.com/optimization/fjssp-world-records.html>
-<http://www.quintiq.com/optimization/flexible-job-shop-scheduling-problem-results.html>
-
-It is not clear what machine they used and what time limit.
-
-Based on that, there is IBM blog post by Jean-Francois Puget. Again not
-accessible any more, but it is in internet wayback machine:
-
-<https://www.ibm.com/developerworks/community/blogs/jfp/entry/solving_flexible_job_shop_scheduling_problems?lang=en>
-
-It seems that Quintiq reacted, improved the results and incorporated CPO results into their own post.
-
-Directory `reference` contains results from those two blogs.
+The `reference` directory contains results from these sources.

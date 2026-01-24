@@ -1,52 +1,54 @@
 # OptalCP Benchmark Collection
 
-This repository contains various benchmarks and results for the [OptalCP](https://www.optalcp.com) solver.
+This repository contains benchmarks for the [OptalCP](https://www.optalcp.com) constraint programming solver. Each benchmark includes data, solver implementations (TypeScript and Python), and reference results.
 
-Benchmarks include:
+Visualizations of the results can be found at [optalcp.com/docs/benchmarks](https://optalcp.com/docs/benchmarks/).
 
-* [Jobshop (JSSP)](benchmarks/jobshop/)
-* [Jobshop with operators](benchmarks/jobshop-operators/)
-* [Blocking Jobshop](benchmarks/blocking-jobshop/)
-* [Flexible Jobshop](benchmarks/flexible-jobshop/)
-* [Openshop](benchmarks/openshop/)
-* [(Non-permutation) Flowshop](benchmarks/non-permutation-flowshop/)
-* [Permutation Flowshop](benchmarks/permutation-flowshop/)
-* [RCPSP](benchmarks/rcpsp/)
-* [Multi-Mode RCPSP](benchmarks/mmrcpsp/)
-* [RCPSP Max](benchmarks/rcpsp-max/)
-* [RCPSP CPR](benchmarks/rcpsp-cpr/)
-* [Distributed Flowshop](benchmarks/distributed-flowshop)
-* [Traveling Salesman Problem](benchmarks/tsp)
-* [Capacitated VRP](benchmarks/cvrp)
-* [VRP with Time Windows](benchmarks/vrp-tw)
+## Benchmarks
 
-Demos:
-* [External solutions / custom heuristics](benchmarks/demo-external-solutions)
+### Scheduling
 
-For each benchmark, there are usually [OptalCP](https://www.optalcp.com) and [IBM ILOG CPLEX CP Optimizer](https://www.ibm.com/products/ilog-cplex-optimization-studio/cplex-cp-optimizer) results (directories `benchmarks/*/results`) and also reference values from the literature (directories `benchmark/*/references`).
+| Benchmark | Description |
+|-----------|-------------|
+| [Jobshop (JSSP)](benchmarks/jobshop/) | Classic job shop scheduling |
+| [Jobshop with operators](benchmarks/jobshop-operators/) | Machines require operators to run |
+| [Jobshop with travel times](benchmarks/jobshop-tt/) | Travel time between machines |
+| [Blocking Jobshop](benchmarks/blocking-jobshop/) | No intermediate buffers between machines |
+| [Flexible Jobshop](benchmarks/flexible-jobshop/) | Operations can use alternative machines |
+| [Flexible Jobshop with workers](benchmarks/flexible-jobshop-w/) | Flexible jobshop with worker assignment |
+| [Openshop](benchmarks/openshop/) | Operations can be processed in any order |
+| [Permutation Flowshop](benchmarks/permutation-flowshop/) | Same job order on all machines |
+| [Non-permutation Flowshop](benchmarks/non-permutation-flowshop/) | Job order can vary per machine |
+| [Distributed Flowshop](benchmarks/distributed-flowshop/) | Flowshop across multiple factories |
 
-Visualizations of the results contained in this repository can be found [here](https://optalcp.com/docs/benchmarks/).
+### Project Scheduling (RCPSP)
 
-## License
+| Benchmark | Description |
+|-----------|-------------|
+| [RCPSP](benchmarks/rcpsp/) | Resource-constrained project scheduling |
+| [Multi-Mode RCPSP](benchmarks/mmrcpsp/) | Activities with alternative modes |
+| [RCPSP Max](benchmarks/rcpsp-max/) | Generalized precedence constraints |
+| [RCPSP CPR](benchmarks/rcpsp-cpr/) | Critical path with resources |
 
-This collection of benchmarks is open source under the MIT license (although [OptalCP](https://www.optalcp.com) itself is not open source).
+### Vehicle Routing
 
-Benchmark data in directories `benchmarks/*/data` is taken from various sources listed in `README.md` files in these directories. We do not claim any rights to these data; please consider them a mirror of the existing sources. Similarly, for the best-known lower and upper bounds and other benchmark results in directories `benchmarks/*/reference.`
+| Benchmark | Description |
+|-----------|-------------|
+| [TSP](benchmarks/tsp/) | Traveling salesman problem |
+| [Capacitated VRP](benchmarks/cvrp/) | Vehicle routing with capacity constraints |
+| [VRP with Time Windows](benchmarks/vrp-tw/) | Vehicle routing with delivery windows |
 
-## Contributing
+### Demos
 
-Any contribution is welcome. In particular, we are looking for:
-
-* New benchmark suggestions.
-* Links to research papers with benchmarks.
-* More results for existing benchmarks (best known or improved bounds, historical results).
-* More instances of the existing benchmarks.
-
-Do not hesitate to contact `petr@vilim.eu`, create a pull request, or [report an issue](https://github.com/ScheduleOpt/optalcp-benchmarks/issues).
+| Demo | Description |
+|------|-------------|
+| [External solutions](benchmarks/demo-external-solutions/) | Hybrid search with custom heuristics |
 
 ## Installation
 
-First,  install [Node.js](https://nodejs.org/) and [git](https://git-scm.com/). Then, on the command line:
+### TypeScript
+
+Requires [Node.js](https://nodejs.org/) 20+ and [git](https://git-scm.com/).
 
 ```sh
 git clone https://github.com/ScheduleOpt/optalcp-benchmarks.git
@@ -55,172 +57,82 @@ npm install
 npx tsc
 ```
 
-The commands above will copy the repository (command `git clone`), install necessary npm packages into `optalcp-benchmarks/node-modules` (command `npm install`), and finally compile TypeScript files into JavaScript (command `npx tsc`).
+### Python
 
-Note that the `npm install` command also installs the preview version of [OptalCP solver](https://www.optalcp.com/). The preview version is enough; it can solve all the benchmarks. However, the preview version reports only objective values, not values of the individual variables. If you can access the full version, you can install it using `npm install` instead of the preview version.
-
-## Running a single benchmark instance
-
-Each benchmark has its subdirectory in `optalcp-benchmarks/benchmarks`.
-For example, to run jobshop benchmark instance `la17`, do the following on the command line:
+Requires Python 3.11+ and [uv](https://docs.astral.sh/uv/).
 
 ```sh
-cd optalcp-benchmark/benchmarks/jobshop
-node jobshop.mjs data/la17.txt --nbWorkers 2 --searchType fds
+git clone https://github.com/ScheduleOpt/optalcp-benchmarks.git
+cd optalcp-benchmarks
+uv sync
 ```
 
-The output will look like this (shortened):
+Both installations include the preview version of OptalCP, which can solve all benchmarks. The preview version reports objective values but not individual variable values. Academic and commercial editions with full functionality are available at [optalcp.com](https://www.optalcp.com). Academic licenses are free.
 
-```text
---------------------------------------------------------------------------------
-                              ScheduleOpt OptalCP
-                          version 0.7.1.144 4380b690
---------------------------------------------------------------------------------
-Input parse time: 00:00
-Parameters:
-   NbWorkers = 2
-   SearchType = FDS
-Solver input:
-   0 integer variables, 100 interval variables, 101 constraints, 35.1kB
-   00:00 Presolving..
-Presolved:
-   0 integer variables, 100 interval variables, 101 constraints, 42.3kB
-   00:00 Starting the search using 2 workers (nbWorkers parameter).
---------------------------------------------------------------------------------
-   00:00 Lower bound 646 Worker 0
-   ...
-   00:00 Lower bound 738 Worker 0
-   00:00 Solution 922 Worker 1
-   ...
-   00:00 Solution 785 Worker 1
-   00:00 Lower bound 780 Worker 1
-   00:00 Solution 784 Worker 1
-   00:00 Worker 1: The current best solution is optimal.
---------------------------------------------------------------------------------
-   Objective value: 784 (optimal)
-       Lower bound: 784
-         Solutions: 47
-         LNS steps: 0 (0.00 per second)
-          Restarts: 26 (1010.39 per second)
-          Branches: 12200 (474107.94 per second)
-             Fails: 2720 (105702.75 per second)
-    Total duration: 00:00.03
-            Memory: 1.87MB
---------------------------------------------------------------------------------
+## Running a Benchmark
+
+Each benchmark has a subdirectory in `benchmarks/`. For example, to solve jobshop instance `la17`:
+
+**TypeScript:**
+```sh
+node benchmarks/jobshop/jobshop.mjs benchmarks/jobshop/data/la17.txt
 ```
 
-All benchmarks have similar command-line arguments (implemented by the function [benchmark](https://optalcp.com/docs/api/functions/benchmark) from OptalCP). In particular, all benchmarks accept `--help`, which prints the list of all available arguments.
+**Python:**
+```sh
+uv run benchmarks/jobshop/jobshop.py benchmarks/jobshop/data/la17.txt
+```
 
-## Setting engine and benchmark parameters
-
-All [engine parameters](https://optalcp.com/docs/api/type-aliases/Parameters) and [benchmark parameters](https://optalcp.com/docs/api/type-aliases/BenchmarkParameters) can be set on the command line. The most commonly used engine parameters are:
-
-* `--timeLimit seconds`: stop the search after the given number of seconds (unless the search is already finished).
-* `--nbWorkers n`: number of workers (CPU threads) to use. By default, OptalCP will use all available physical CPU cores.
-* `--searchType LNS|FDS|FDSLB|SetTimes`: sets the search type. The default is `LNS`. In short:
-  * `LNS` (Large Neighborhood Search) is suitable for quickly finding high-quality solutions,
-  * `FDS` (Failure-Directed Search) is suitable for optimality proofs,
-  * `FDSLB` iteratively proves better and better lower bounds,
-  * `SetTimes` is a basic search that constructs the solution chronologically.
-* Propagation levels for individual types of constraints. A higher level means a more complex algorithm and more propagation but also more time spent on the propagation. Basic propagation levels are usually enough for the `LNS` search type. On the other hand, `FDS` works better with higher propagation levels. Propagation levels are:
-  * `--noOverlapPropgationLevel 1-4`. The default is 2.
-  * `--cumulPropagationLevel 1-3`. The default is 1.
-  * `--reservoirPropagationLevel 1-2`. The default is 1.
-
-### Parameters for individual workers
-
-Engine parameters can also be set for individual workers. The syntax is `--workerN.param value`, where `N` is a worker number (starting from 0). Workers cooperate by sharing information about the best solution found so far. Combining multiple search types usually works better than a single search type. For example, to run the `FDS` search on worker 0 with more propagation and the `LNS` search (the default) on the second worker, use the following command line:
+Common options:
 
 ```sh
-node jobshop.mjs data/la17.txt --nbWorkers 2 --worker0.searchType fds --worker0.noOverlapPropagationLevel 4
+--timeLimit 60      # Stop after 60 seconds
+--nbWorkers 4       # Use 4 CPU threads
+--preset Large      # Use preset for large problems
 ```
 
-## Running multiple benchmarks
+All benchmarks accept `--help` for the full list of options.
 
-Besides running each benchmark instance separately, running multiple instances (of the same benchmark) in a sequence is also possible. Just provide multiple data files on the command line. For example, let us run nine jobshop instances `la0*`:
+**Note:** The TypeScript version supports additional features like parallel benchmark runs, result collection, and model export. These features are coming to Python soon. See [USAGE.md](USAGE.md) for details.
 
-```sh
-node jobshop.mjs data/la0*.txt --nbWorkers 2 --worker0.searchType fds --worker0.noOverlapPropagationLevel 4
+## Advanced Usage
+
+See [USAGE.md](USAGE.md) for:
+
+- Solver presets and parameters
+- Running multiple instances
+- Collecting results (CSV/JSON)
+- Exporting models
+- Comparing with CP Optimizer
+
+## Repository Structure
+
+```
+benchmarks/<name>/              Benchmark implementations with data and results
+              ├── README.md     Problem description and data sources
+              ├── <name>.mts    TypeScript implementation
+              ├── <name>.py     Python implementation
+              ├── data/         Instance files
+              ├── results/      Solver results
+              └── references/   Known bounds from literature
+
+compare/       Result comparison tool (see compare/README.md)
+solveCPOs/     CP Optimizer wrapper (see solveCPOs/README.md)
 ```
 
-The output will look like this:
+## License
 
-```text
-Number of solves to run: 9
-   Run Model              Status   Objective  LowerBound        Time    Sol.time   Solutions   LNS steps    Restarts    Branches
---------------------------------------------------------------------------------------------------------------------------------
-     1 jobshop_la01      Optimum         666         666        0.00        0.00           5          11           0        1028
-     2 jobshop_la02      Optimum         655         655        0.02        0.01          23         188           7       14704
-     3 jobshop_la03      Optimum         597         597        0.01        0.01          23          84           4       10316
-     4 jobshop_la04      Optimum         590         590        0.01        0.01          24          85           3        9822
-     5 jobshop_la05      Optimum         593         593        0.00        0.00           2           4           0         246
-     6 jobshop_la06      Optimum         926         926        0.00        0.00           3           4           0         348
-     7 jobshop_la07      Optimum         890         890        0.01        0.00          15          20           2        3995
-     8 jobshop_la08      Optimum         863         863        0.00        0.00           4          10           1        1280
-     9 jobshop_la09      Optimum         951         951        0.00        0.00           3           4           0         327
---------------------------------------------------------------------------------------------------------------------------------
-                          Mean:   747.888889  747.888889        0.01        0.00       11.33          46           2        4674
-                      Std. Dev:   155.501161  155.501161        0.00        0.00        9.79          63           2        5493
-                           Min:   590.000000  590.000000        0.00        0.00        2.00           4           0         246
-                           Max:   951.000000  951.000000        0.02        0.01       24.00         188           7       14704
-```
+This benchmark collection is open source under the MIT license. [OptalCP](https://www.optalcp.com) itself is not open source.
 
-Instead of individual engine logs, the benchmark will print a table with statistics for all runs. The logs can be saved using the `--log` [option](https://optalcp.com/docs/api/type-aliases/BenchmarkParameters#log).
+Benchmark data in `benchmarks/*/data` comes from various sources listed in each benchmark's README. Most original sources do not specify a license; we provide the data as a mirror for research purposes. Reference bounds in `benchmarks/*/references` are collected from the literature.
 
-Similarly, a benchmark instance can be run multiple times with different [random seeds](https://optalcp.com/docs/api/type-aliases/Parameters#randomseed) using command-line parameter `--nbSeeds`.
+## Contributing
 
-On a CPU with enough cores, multiple benchmarks can run in parallel. For example, to run ten instances of `la3*`, five instances in parallel, each instance using two workers, use the following command line:
+Contributions are welcome:
 
-```sh
-node jobshop.mjs data/la3*.txt --nbParallelRuns 5 --nbWorkers 2 --worker0.searchType fds --worker0.noOverlapPropagationLevel 4
-```
-In this case, as individual instances run in parallel, they do not have to finish in the same order as they were started. As a result, the order of the models in the output does not have to be the same as the order in the command line.
+- New benchmark suggestions
+- Links to research papers with benchmarks
+- Improved bounds or historical results
+- Additional instances for existing benchmarks
 
-## Collecting the results
-
-Besides printing the results on the standard output, the benchmark can save them to a CSV or JSON file. To do so, use the `--summary filename.csv` and/or `--result filename.json`:
-
-```sh
-node jobshop.mjs data/la3*.txt --summary la3_2w.csv --result la3_2w.json --worker0.searchType fds --worker0.noOverlapPropagationLevel 4 --nbWorkers 2
-```
-
-The produced CSV file contains all the information printed on the console and a few additional columns. The JSON file contains even more information (such as objective values of all solutions found and the times when they were found). In particular, the JSON file contains an array of [BenchmarkResults](https://optalcp.com/docs/api/type-aliases/BenchmarkResult).
-
-## Exporting models in JSON
-
-Node.js communicates with the solver executable `optalcp` using JSON messages. To solve a benchmark instance, Node.js first encodes it in JSON and sends it to the solver. JSON encoding of a benchmark can also be saved to a file. To do so, use the `--exportJSON` option. In combination with `--dontSolve`, the solver is not called, and only the JSON file is created:
-
-```sh
-node jobshop.mjs data/la17.txt --exportJSON la17.json --dontSolve --nbWorkers 2
-```
-
-Note that engine parameters are also saved in the JSON file. The model stored in a JSON file can solved using `utils/solveJSON.mjs`:
-
-```sh
-node utils/solveJSON.mjs la17.json --nbWorkers 4
-```
-
-Note that the parameters stored in the file can be overridden. The script `utils/solveJSON.mjs` accepts the same command-line options as any other benchmark script and can also solve multiple models (even in parallel).
-
-## Running benchmarks with CP Optimizer
-
-Benchmark models can also be exported into a text format that is very similar to the `.cpo` file format used by [IBM ILOG CPLEX CP Optimizer](https://www.ibm.com/products/ilog-cplex-optimization-studio/cplex-cp-optimizer). The exported file is not guaranteed to be the correct `.cpo` file as OptalCP and CP Optimizer languages are slightly different (for example, OptalCP supports optional integer expressions, but CP Optimizer does not). However, for the current benchmarks, the export works well. To export a model, use the `--exportTxt` option:
-
-```sh
-node jobshop.mjs data/la17.txt --exportTxt la17.cpo --dontSolve
-```
-
-Unlike the JSON export, the file does not contain engine parameters. The model can then be solved, e.g., by the `cpoptimizer` command-line tool.
-
-Alternatively, the directory [`solveCPOs`](solveCPOs) provides a C++ source code of a simple program that can solve the exported `.cpo` models using CP Optimizer (you need CP Optimizer to compile it). In addition, `solveCPOs` can export the results in CSV and JSON files with the same structure as all the other OptalCP benchmarks. This way, it is possible to compare the results of OptalCP and CP Optimizer.
-
-## Comparing the results
-
-The [`compare`](compare) utility can compare results stored in JSON files. The utility generates static HTML pages such as [this comparison of OptalCP and CP Optimizer on Flexible Jobshop benchmark](https://optalcp.com/benchmarks/flexible-jobshop/main.html).
-
-## Citation
-
-Please use the link "Cite this repository" on the right to get the citation in various formats (generated from the file [`CITATION.cff`](CITATION.cff)).
-Feel free to add authors or change their order, for example, by considering the Credits section in the `README.md` files of individual benchmarks. It is also possible to cite only a specific benchmark.
-It is helpful to add the date the repository was accessed (usually using the `urldate` field) or a git commit id.
-
+Contact `petr@vilim.eu`, create a pull request, or [report an issue](https://github.com/ScheduleOpt/optalcp-benchmarks/issues).

@@ -1,10 +1,16 @@
 import * as fs from 'fs';
+import * as zlib from 'node:zlib';
 import * as CP from "@scheduleopt/optalcp";
 import * as lib from './src/lib.mjs';
-import * as utils from '../utils/utils.mjs';
 import { dirname } from 'path';
 import { strict as assert } from 'assert';
 import { fileURLToPath } from 'url';
+
+function readFile(filename: string): string {
+  return filename.endsWith(".gz")
+    ? zlib.gunzipSync(fs.readFileSync(filename), {}).toString()
+    : fs.readFileSync(filename, "utf8");
+}
 
 // For normalization, we require that the objective is a number
 function canBeNormalized(result: CP.NormalBenchmarkResult): boolean {
@@ -174,8 +180,8 @@ const outputDir = process.argv[7];
 
 const runNames: lib.RunNames = [nameA, nameB];
 
-let dataA = JSON.parse(utils.readFile(fileA)) as CP.BenchmarkResult[];
-let dataB = JSON.parse(utils.readFile(fileB)) as CP.BenchmarkResult[];
+let dataA = JSON.parse(readFile(fileA)) as CP.BenchmarkResult[];
+let dataB = JSON.parse(readFile(fileB)) as CP.BenchmarkResult[];
 
 let [normalA, errorsA] = lib.filterErrors(dataA);
 let [normalB, errorsB] = lib.filterErrors(dataB);

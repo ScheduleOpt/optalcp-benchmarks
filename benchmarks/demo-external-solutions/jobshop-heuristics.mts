@@ -1,8 +1,8 @@
-import * as zlib from 'node:zlib';
+import { once } from 'node:events';
 import * as fs from 'node:fs'
-import { once, EventEmitter } from 'node:events';
 import * as readline from 'node:readline';
-import * as timersPromisses from 'node:timers/promises';
+import * as timersPromises from 'node:timers/promises';
+import * as zlib from 'node:zlib';
 
 // This code is a simple heuristic solver for the jobshop scheduling problem.
 // It generates solutions in JSON format and outputs them to stdout, one
@@ -12,9 +12,8 @@ import * as timersPromisses from 'node:timers/promises';
 //     makespan: number,
 //     schedule: [{ name: string, start: number, end: number }]
 //  }
-//  It also listens to stdin for external solutions. However only makespan is
-//  used, so the incoming JSON messages are expected to be in the format:
-//   { makespan: number }
+//  It also listens to stdin for external solutions in the same format.
+//  This is just a demo; the heuristic is simplistic and only uses the makespan.
 
 // Input jobshop data as read from a file
 type Data = {
@@ -30,7 +29,7 @@ type Data = {
 function readData(filename: string): Data {
 
   const s = filename.split('/')
-  const instance = s[s.length - 1].replace(/.txt/, '')
+  const instance = s[s.length - 1].replace(/\.txt$/, '')
 
   let rawData: string|null = null;
   if (filename.endsWith(".gz"))
@@ -78,8 +77,8 @@ type Machine = {
   // Sorted by heuristicValue.
   candidates: Array<{
     heuristicValue: number,  // We schedule a task with the smallest heuristicValue = minEnd + preference
-    minEnd: number,          // Minimum end the tasks. Takes into account predecessor operations in the job and occupiedUntil.
-    duration: number,        // Duration of the tasks
+    minEnd: number,          // Minimum end of the task. Takes into account predecessor operations in the job and occupiedUntil.
+    duration: number,        // Duration of the task
     job: number,             // Job number of the task
     operation: number,       // Operation number of the task within the job
     preference: number,      // A random number for heuristic randomization
@@ -94,23 +93,22 @@ type ScheduleTask = {
 }
 
 function updateCandidates(m: Machine) {
-  for (let c of m.candidates) {
+  for (const c of m.candidates) {
     c.minEnd = Math.max(m.occupiedUntil + c.duration, c.minEnd);
     c.heuristicValue = c.minEnd + c.preference;
   }
-  m.candidates.sort();
+  m.candidates.sort((a, b) => a.heuristicValue - b.heuristicValue);
 }
 
-// Heuristic search for a solution.  If the solution is batter than bestMakespan
-// the reports the solution on stdout in JSON format.
+// Heuristic search for a solution. If the solution is better than bestMakespan
+// it reports the solution on stdout in JSON format.
 // Returns the makespan of the solution.
 async function heuristics(data: Data, bestMakespan: number): Promise<number> {
 
-  let machines = Array(data.nbMachines);
+  const machines = Array(data.nbMachines);
   for (let m = 0; m < data.nbMachines; m++)
     machines[m] = {
       occupiedUntil: 0,
-      schedule: [],
       candidates: []
     };
 
@@ -126,11 +124,11 @@ async function heuristics(data: Data, bestMakespan: number): Promise<number> {
   for (let m = 0; m < data.nbMachines; m++)
     updateCandidates(machines[m]);
 
-  let schedule: ScheduleTask[] = [];
+  const schedule: ScheduleTask[] = [];
 
   for (;;) {
     // Find a candidate with the smallest heuristic value on all machines
-    let minHeuristicValue = Infinity;
+    let minHeuristicValue = Number.POSITIVE_INFINITY;
     let chosenMachine = -1;
     for (let m = 0; m < data.nbMachines; m++) {
       const c = machines[m].candidates[0];
@@ -142,11 +140,11 @@ async function heuristics(data: Data, bestMakespan: number): Promise<number> {
       }
     }
 
-    if (minHeuristicValue === Infinity)
+    if (minHeuristicValue === Number.POSITIVE_INFINITY)
       break; // No more candidates, everything is scheduled
 
     // Schedule the selected candidate
-    let machine = machines[chosenMachine];
+    const machine = machines[chosenMachine];
     const candidate = machine.candidates.shift();
     schedule.push({ start: candidate.minEnd - candidate.duration, end: candidate.minEnd, name: candidate.name });
     machine.occupiedUntil = candidate.minEnd;
@@ -172,9 +170,9 @@ async function heuristics(data: Data, bestMakespan: number): Promise<number> {
     makespan = Math.max(makespan, t.end);
 
   if (makespan < bestMakespan) {
-    // Output the schedule in JSON format for a simple parsing
+    // Output the schedule in JSON format for easy parsing
     process.stdout.write(JSON.stringify({ makespan, schedule }));
-    let done = process.stdout.write("\n");
+    const done = process.stdout.write("\n");
     if (!done) {
       // On Windows, stdout.write is always synchronous. On POSIX systems (e.g.
       // Linux) stdout is buffered when redirected to a pipe.  By waiting for
@@ -187,46 +185,46 @@ async function heuristics(data: Data, bestMakespan: number): Promise<number> {
   return makespan;
 }
 
-if (process.argv.length != 3) {
+if (process.argv.length !== 3) {
   console.error("Usage: node jobshop-heuristics.mjs <filename>");
   process.exit(1);
 }
-let filename = process.argv[2];
-let data = readData(filename);
+const filename = process.argv[2];
+const data = readData(filename);
 
-// Best makespan found so far. By us or by the external solver:
-let bestMakespan = Infinity;
+// Best makespan found so far (by this process or received from the solver):
+let bestMakespan = Number.POSITIVE_INFINITY;
 
-// Create readline interface to read the stdin:
-let inputPipe = readline.createInterface({ input: process.stdin, terminal: false , crlfDelay: Infinity });
+// Create readline interface to read stdin:
+const inputPipe = readline.createInterface({ input: process.stdin, terminal: false, crlfDelay: Number.POSITIVE_INFINITY });
 // Whenever a line arrives, parse it as a JSON object and update bestMakespan:
 inputPipe.on('line', line => {
-  let data = JSON.parse(line);
+  const data = JSON.parse(line);
   bestMakespan = Math.min(bestMakespan, data.makespan);
 });
 
 async function run() {
   // First run the heuristics without any randomization
-  bestMakespan = await heuristics(data, Infinity);
+  bestMakespan = await heuristics(data, Number.POSITIVE_INFINITY);
 
   // Compute the maximum duration of all tasks
   let maxDuration = 0;
-  for (let d of data.durations) {
-    for (let dd of d)
+  for (const d of data.durations) {
+    for (const dd of d)
       maxDuration = Math.max(maxDuration, dd);
   }
 
   // Infinite loop. We expect to be killed by the parent process.
   for (; ;) {
     // Randomize the preferences
-    for (let d of data.preferences) {
+    for (const d of data.preferences) {
       for (let i = 0; i < d.length; i++)
         d[i] = Math.floor(Math.random() * maxDuration);
     }
-    let makespan = await heuristics(data, bestMakespan);
+    const makespan = await heuristics(data, bestMakespan);
     bestMakespan = Math.min(bestMakespan, makespan);
-    // Let the event loop to run so we don't block the process completely:
-    await timersPromisses.setImmediate();
+    // Let the event loop run so we don't block the process completely:
+    await timersPromises.setImmediate();
   }
 }
 
