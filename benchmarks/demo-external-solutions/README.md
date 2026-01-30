@@ -45,7 +45,7 @@ node jobshop-hybrid.mjs --nbWorkers 2 ../jobshop/data/taillard/ta80.txt
 
 ```sh
 cd optalcp-benchmarks/benchmarks/demo-external-solutions
-python jobshop-hybrid.py --nbWorkers 2 ../jobshop/data/taillard/ta80.txt
+uv run jobshop-hybrid.py --nbWorkers 2 ../jobshop/data/taillard/ta80.txt
 ```
 
 `jobshop-hybrid` accepts the same arguments as all other benchmarks. In the above command, we use only 2 workers.

@@ -115,8 +115,8 @@ wheels = [
 
 [[package]]
 name = "optalcp"
-version = "2025.12.2"
-source = { git = "https://github.com/ScheduleOpt/optalcp-py?rev=v2025.12.2#e67a34e5f34642bdaf566eac1957e0b3a212253e" }
+version = "2026.1.0"
+source = { git = "https://github.com/ScheduleOpt/optalcp-py?rev=v2026.1.0#ae60cddaf35ddf759c06844c25eeb9d5730a89af" }
 dependencies = [
     { name = "typing-extensions" },
 ]
@@ -145,8 +145,8 @@ provides-extras = ["dev"]
 
 [[package]]
 name = "optalcp-bin-preview"
-version = "2025.12.2"
-source = { git = "https://github.com/ScheduleOpt/optalcp-py-bin-preview?rev=latest#4ae3b7e0e664e32af43723772c5be29ca39d3d36" }
+version = "2026.1.0"
+source = { git = "https://github.com/ScheduleOpt/optalcp-py-bin-preview?rev=latest#b3719da1d26237f5728736af7c38f0b02d260c32" }
 dependencies = [
     { name = "optalcp" },
 ]
