@@ -1,7 +1,7 @@
 import * as fs from 'fs';
-import * as zlib from 'node:zlib';
 import * as CP from "@scheduleopt/optalcp";
 import * as lib from './src/lib.mjs';
+import * as zlib from "node:zlib";
 import { dirname } from 'path';
 import { strict as assert } from 'assert';
 import { fileURLToPath } from 'url';
@@ -54,6 +54,45 @@ function getBestSolution(pair: lib.Pair): number {
   let lastB = historyB[historyB.length - 1].objective;
   assert(typeof lastB == "number");
   return lastB;
+}
+
+// Skip items at the beginning with solveTime < minTimeCutoff, but keep the last one before minTimeCutoff (if there is one).
+function removeInitialObjectiveHistory(history: CP.ObjectiveHistoryItem[], minTimeCutoff: number): CP.ObjectiveHistoryItem[] {
+  let result: CP.ObjectiveHistoryItem[] = [];
+  let lastBeforeSkip: CP.ObjectiveHistoryItem | null = null;
+  for (let h of history) {
+    if (h.solveTime < minTimeCutoff) {
+      lastBeforeSkip = h;
+    } else {
+      if (lastBeforeSkip !== null) {
+        result.push(lastBeforeSkip);
+        lastBeforeSkip = null;
+      }
+      result.push(h);
+    }
+  }
+  if (lastBeforeSkip !== null)
+    result.push(lastBeforeSkip);
+  return result;
+}
+
+function removeInitialLowerBoundHistory(history: CP.LowerBoundEvent[], minTimeCutoff: number): CP.LowerBoundEvent[] {
+  let result: CP.LowerBoundEvent[] = [];
+  let lastBeforeSkip: CP.LowerBoundEvent | null = null;
+  for (let h of history) {
+    if (h.solveTime < minTimeCutoff) {
+      lastBeforeSkip = h;
+    } else {
+      if (lastBeforeSkip !== null) {
+        result.push(lastBeforeSkip);
+        lastBeforeSkip = null;
+      }
+      result.push(h);
+    }
+    if (lastBeforeSkip !== null)
+      result.push(lastBeforeSkip);
+  }
+  return result;
 }
 
 function normalizeObjectiveHistory(history: CP.ObjectiveHistoryItem[], bestSolution: number, duration: number): lib.NormalizedHistoryItem[] {
@@ -166,25 +205,81 @@ function calcGlobalPlot(history: lib.Pair[]): lib.NormalizedHistory {
   };
 }
 
-if (process.argv.length != 8) {
-  console.error("Usage: node compare.mjs <header> <nameA> <dataA.json> <nameB> <dataB.json> <outputDir>");
+let filterRegex: RegExp | undefined;
+let minTimeCutoff = 1; // in seconds
+let positionalArgs: string[] = [];
+
+// Parse all arguments starting from index 2
+for (let i = 2; i < process.argv.length; i++) {
+  if (process.argv[i].startsWith('--')) {
+    if (i + 1 >= process.argv.length) {
+      console.error("Error: Missing argument for option:", process.argv[i]);
+      process.exit(1);
+    }
+    if (process.argv[i] === '--filter') {
+      try {
+        filterRegex = new RegExp(process.argv[i + 1]);
+      } catch (e) {
+        console.error("Error: Invalid regex pattern:", process.argv[i + 1]);
+        process.exit(1);
+      }
+    } else if (process.argv[i] === '--minTimeCutoff') {
+      minTimeCutoff = Number(process.argv[i + 1]);
+      if (isNaN(minTimeCutoff) || minTimeCutoff < 0) {
+        console.error("Error: Invalid value for --minTimeCutoff:", process.argv[i + 1]);
+        process.exit(1);
+      }
+    } else {
+      console.error("Error: Unknown option:", process.argv[i]);
+      process.exit(1);
+    }
+    i++; // Skip the argument for the option
+  } else {
+    positionalArgs.push(process.argv[i]);
+  }
+}
+
+// Check for exactly 6 positional arguments
+if (positionalArgs.length !== 6) {
+  console.error("Usage: node compare.mjs [options] <header> <nameA> <dataA.json> <nameB> <dataB.json> <outputDir>");
+  console.error("Available options:");
+  console.error("  --filter REGEX     Only include instances with names matching REGEX");
+  console.error("  --minTimeCutoff N  Ignore events before this time (in seconds, default: 1)");
   process.exit(1);
 }
 
-const header = process.argv[2];
-const nameA = process.argv[3];
-const fileA = process.argv[4];
-const nameB = process.argv[5];
-const fileB = process.argv[6];
-const outputDir = process.argv[7];
+const header = positionalArgs[0];
+const nameA = positionalArgs[1];
+const fileA = positionalArgs[2];
+const nameB = positionalArgs[3];
+const fileB = positionalArgs[4];
+const outputDir = positionalArgs[5];
 
 const runNames: lib.RunNames = [nameA, nameB];
 
 let dataA = JSON.parse(readFile(fileA)) as CP.BenchmarkResult[];
 let dataB = JSON.parse(readFile(fileB)) as CP.BenchmarkResult[];
 
+if (filterRegex !== undefined) {
+  const regex = filterRegex;
+  dataA = dataA.filter(result => regex.test(result.modelName));
+  dataB = dataB.filter(result => regex.test(result.modelName));
+}
+
 let [normalA, errorsA] = lib.filterErrors(dataA);
 let [normalB, errorsB] = lib.filterErrors(dataB);
+
+if (minTimeCutoff > 0) {
+  for (let result of normalA) {
+    result.objectiveHistory = removeInitialObjectiveHistory(result.objectiveHistory, minTimeCutoff);
+    result.lowerBoundHistory = removeInitialLowerBoundHistory(result.lowerBoundHistory, minTimeCutoff);
+  }
+  for (let result of normalB) {
+    result.objectiveHistory = removeInitialObjectiveHistory(result.objectiveHistory, minTimeCutoff);
+    result.lowerBoundHistory = removeInitialLowerBoundHistory(result.lowerBoundHistory, minTimeCutoff);
+  }
+}
+
 const pairs = lib.computePairs(normalA, normalB);
 
 if (!fs.existsSync(outputDir))

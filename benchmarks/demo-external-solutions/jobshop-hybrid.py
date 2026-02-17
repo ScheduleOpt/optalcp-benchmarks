@@ -131,7 +131,7 @@ async def main() -> None:
                 v = vars_map.get(t["name"])
                 assert v is not None, f"Unknown variable: {t['name']}"
                 solution.set_value(v, t["start"], t["end"])
-            await solver.send_solution(solution)
+            solver.send_solution(solution)
 
     # Handler for solutions found by OptalCP
     def on_solution(event: cp.SolutionEvent) -> None:

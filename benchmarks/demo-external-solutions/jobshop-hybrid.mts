@@ -117,7 +117,7 @@ heuristicsPipe.on("line", async line => {
     assert(v !== undefined);
     solution.setValue(v, t.start, t.end);
   }
-  await solver.sendSolution(solution);
+  solver.sendSolution(solution);
 });
 
 // Each time a solution is found, let the heuristics know about it:

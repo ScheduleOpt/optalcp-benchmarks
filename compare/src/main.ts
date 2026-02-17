@@ -605,24 +605,26 @@ function plotObjectiveHistory(history: lib.NormalizedHistory, runNames: lib.RunN
   }
 
   // Common options for all lines in the plot:
-  let commonOptions = { x: "time", strokeWidth: 2 };
+  let commonOptions = { x: "time", strokeWidth: 4 };
   // Stroke must be a function. If we use a string, it will be interpreted as a color.
   // And for legend, we need to use strings.
-  let optionsObjectiveA = { stroke: (_: number) => "Objective " + runNames[0], y: "value", ...commonOptions };
-  let optionsObjectiveB = { stroke: (_: number) => "Objective " + runNames[1], y: "value", ...commonOptions };
-  let optionsLBA = { stroke: (_: number) => "Lower bound " + runNames[0], y: "value", ...commonOptions };
-  let optionsLBB = { stroke: (_: number) => "Lower bound " + runNames[1], y: "value", ...commonOptions };
+  let optionsObjectiveA = { stroke: (_: number) => runNames[0], y: "value", ...commonOptions };
+  let optionsObjectiveB = { stroke: (_: number) => runNames[1], y: "value", ...commonOptions };
+  let optionsLBA = { stroke: (_: number) => runNames[0], y: "value", strokeDasharray: "8 4", ...commonOptions };
+  let optionsLBB = { stroke: (_: number) => runNames[1], y: "value", strokeDasharray: "8 4", ...commonOptions };
 
-  return Plot.plot({
-    marginLeft: 50,
+  let plot = Plot.plot({
+    marginLeft: 90,
+    marginTop: 25,
+    marginBottom: 50,
     width: 1200,
     height: 600,
-    y: { grid: true, label: "Objective" },
+    style: { fontSize: "18px" },
+    y: { grid: true, label: "Normalized objective", labelAnchor: "top" },
     x: { label: "Time" },
     color: {
       type: "categorical",
-      domain: ["Objective " + runNames[0], "Objective " + runNames[1], "Lower bound " + runNames[0], "Lower bound " + runNames[1]],
-      //range: ["#1966b0", "#eb773e", "#73d9f0", "#f7b301"],
+      domain: [runNames[0], runNames[1]],
       legend: true,
     },
     marks: [
@@ -644,10 +646,10 @@ function plotObjectiveHistory(history: lib.NormalizedHistory, runNames: lib.RunN
         x: (d: Tip) => d.time,
         title: (d: Tip) =>
           "Time: " + lib.formatDuration(d.time) + "\n" +
-          "Objective " + runNames[0] + ": " +   d3.format(".4f")(d.objectiveA) + "\n" +
-          "Objective " + runNames[1] + ": " +   d3.format(".4f")(d.objectiveB) + "\n" +
-          "Lower bound " + runNames[0] + ": " + d3.format(".4f")(d.lowerBoundA) + "\n" +
-          "Lower bound " + runNames[1] + ": " + d3.format(".4f")(d.lowerBoundB),
+          runNames[0] + ": " +   d3.format(".4f")(d.objectiveA) + "\n" +
+          runNames[1] + ": " +   d3.format(".4f")(d.objectiveB) + "\n" +
+          "LB " + runNames[0] + ": " + d3.format(".4f")(d.lowerBoundA) + "\n" +
+          "LB " + runNames[1] + ": " + d3.format(".4f")(d.lowerBoundB),
       })),
 
       // The following is copied from: https://observablehq.com/plot/interactions/pointer
@@ -655,6 +657,12 @@ function plotObjectiveHistory(history: lib.NormalizedHistory, runNames: lib.RunN
       Plot.ruleX(tips, Plot.pointerX({x: (d: Tip) => (d.time) / 2, stroke: "black", strokeWidth: 1})),
     ],
   });
+  // The legend is rendered outside the SVG as a <div> inside the <figure>.
+  // Style it with a bigger font for presentation use.
+  let legend = plot.querySelector(":scope > div");
+  if (legend instanceof HTMLElement)
+    legend.style.fontSize = "22px";
+  return plot;
 }
 
 
