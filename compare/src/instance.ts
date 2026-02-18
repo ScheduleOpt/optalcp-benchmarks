@@ -106,7 +106,7 @@ function plotObjectiveHistory(pair: lib.Pair, runNames: lib.RunNames) {
 
   let usedMarker: Plot.Marker = "dot";
   // Common options for all lines in the plot:
-  let commonOptions = { x: "solveTime", marker: usedMarker, strokeWidth: 4 };
+  let commonOptions = { x: "solveTime", marker: usedMarker, strokeWidth: 2 };
   // Stroke must be a function. If we use a string, it will be interpreted as a color.
   // And for legend, we need to use strings.
   let optionsObjectiveA = { stroke: (_: CP.ObjectiveValue) => "Objective " + runNames[0], y: "objective", ...commonOptions };
@@ -114,13 +114,11 @@ function plotObjectiveHistory(pair: lib.Pair, runNames: lib.RunNames) {
   let optionsLBA = { stroke: (_: CP.ObjectiveValue) => "Lower bound " + runNames[0], y: "value", ...commonOptions };
   let optionsLBB = { stroke: (_: CP.ObjectiveValue) => "Lower bound " + runNames[1], y: "value", ...commonOptions };
 
-  let plot = Plot.plot({
-    marginLeft: 90,
-    marginBottom: 50,
+  return Plot.plot({
+    marginLeft: 50,
     width: 1200,
     height: 600,
-    style: { fontSize: "18px" },
-    y: { grid: true, label: "Objective", labelOffset: 70 },
+    y: { grid: true, label: "Objective" },
     x: { label: "Time" },
     color: {
       type: "categorical",
@@ -152,7 +150,7 @@ function plotObjectiveHistory(pair: lib.Pair, runNames: lib.RunNames) {
       Plot.dot(pair.b.proof ? [{ solveTime: endTimeB, value: lastObjB.objective }] : [], {
         x: "solveTime",
         y: "value",
-        r: 8,
+        r: 5,
         symbol: "star",
         stroke: _ => "Objective " + runNames[1],
         fill: _ => "Objective " + runNames[1]
@@ -166,7 +164,7 @@ function plotObjectiveHistory(pair: lib.Pair, runNames: lib.RunNames) {
       Plot.dot(pair.a.proof ? [{ solveTime: endTimeA, value: lastObjA.objective }] : [], {
         x: "solveTime",
         y: "value",
-        r: 8,
+        r: 5,
         symbol: "star",
         stroke: _ => "Objective " + runNames[0],
         fill: _ => "Objective " + runNames[0]
@@ -188,10 +186,6 @@ function plotObjectiveHistory(pair: lib.Pair, runNames: lib.RunNames) {
       Plot.ruleX(tips, Plot.pointerX({x: (d: Tip) => (d.fromTime + d.toTime) / 2, stroke: "black", strokeWidth: 1})),
     ],
   });
-  let legend = plot.querySelector(":scope > div");
-  if (legend instanceof HTMLElement)
-    legend.style.fontSize = "22px";
-  return plot;
 }
 
 function makeComparisonTable(pair: lib.Pair, runNames: lib.RunNames) {
