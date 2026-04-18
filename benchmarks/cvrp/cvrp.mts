@@ -52,11 +52,7 @@ function defineModel(filename: string): CP.Model {
     }
   }
 
-  // Compute the maximum distance in the matrix:
-  let maxDistance = 0;
-  for (let i = 0; i < nbNodes; i++)
-    for (let j = 0; j < nbNodes; j++)
-      maxDistance = Math.max(maxDistance, transitionMatrix[i][j]);
+  const maxDistance = Math.max(...transitionMatrix.flat());
   // The horizon doesn't seem to be needed. But let's use it anyway:
   const horizon = maxDistance * (nbNodes + nbVehicles);
 

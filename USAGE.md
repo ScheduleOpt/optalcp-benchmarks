@@ -2,6 +2,8 @@
 
 This guide covers advanced features of the OptalCP benchmarks. For basic installation and running, see [README.md](README.md).
 
+> **Language parity:** Core solver parameters (`--timeLimit`, `--nbWorkers`, `--searchType`, `--preset`, `--randomSeed`, per-worker overrides, propagation levels) work identically in Python, C#, and TypeScript. Benchmark-orchestration features (`--nbParallelRuns`, `--summary`, `--result`, `--exportJSON`, `--exportText`, `--dontSolve`, `--nbSeeds`) are currently TypeScript-only; the Python and C# versions intentionally mirror each other with the minimal runner.
+
 ## Solver Parameters
 
 ### Presets
@@ -15,6 +17,9 @@ Presets configure multiple solver parameters at once. Use `--preset` to select o
 | `Large` | Optimized for problems with 100k+ variables |
 
 ```sh
+uv run benchmarks/jobshop/jobshop.py benchmarks/jobshop/data/ta80.txt --preset Large
+# or, equivalently:
+dotnet run --project benchmarks/jobshop/jobshop.csproj -- benchmarks/jobshop/data/ta80.txt --preset Large
 node benchmarks/jobshop/jobshop.mjs benchmarks/jobshop/data/ta80.txt --preset Large
 ```
 

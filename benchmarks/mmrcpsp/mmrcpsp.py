@@ -42,7 +42,7 @@ def make_model_name(benchmark_name: str, filename: str) -> str:
     instance = re.sub(r"^data_", "", instance)
     instance = re.sub(r"\.gz$", "", instance)
     instance = re.sub(r"\.json$", "", instance)
-    instance = re.sub(r"\...?$", "", instance)
+    instance = re.sub(r"\....?$", "", instance)
     return f"{benchmark_name}_{instance}"
 
 
@@ -187,11 +187,8 @@ def define_model(filename: str) -> cp.Model:
 
         # Add cumulative pulses for renewable resources:
         for r in range(nb_resources):
-            min_c = renewable_requirements[r][0]
-            max_c = min_c
-            for a in range(1, nb_modes[j]):
-                min_c = min(min_c, renewable_requirements[r][a])
-                max_c = max(max_c, renewable_requirements[r][a])
+            reqs = renewable_requirements[r]
+            min_c, max_c = min(reqs), max(reqs)
             if max_c == 0:
                 continue  # Job doesn't use this resource in any mode
             if min_c == max_c:

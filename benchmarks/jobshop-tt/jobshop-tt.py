@@ -31,7 +31,7 @@ def make_model_name(benchmark_name: str, filename: str) -> str:
     instance = re.sub(r"^data_", "", instance)
     instance = re.sub(r"\.gz$", "", instance)
     instance = re.sub(r"\.json$", "", instance)
-    instance = re.sub(r"\...?$", "", instance)
+    instance = re.sub(r"\....?$", "", instance)
     return f"{benchmark_name}_{instance}"
 
 
@@ -99,13 +99,10 @@ def define_model(filename: str) -> cp.Model:
     # Tasks on each machine cannot overlap:
     for j in range(nb_machines):
         # Create transition times from random 2D points (Euclidean distances):
-        points = [
-            {"x": round(random() * max_tt), "y": round(random() * max_tt)}
-            for _ in range(nb_jobs)
-        ]
+        points = [(round(random() * max_tt), round(random() * max_tt)) for _ in range(nb_jobs)]
         matrix = [
-            [round(math.hypot(p1["x"] - p2["x"], p1["y"] - p2["y"])) for p2 in points]
-            for p1 in points
+            [round(math.hypot(x1 - x2, y1 - y2)) for x2, y2 in points]
+            for x1, y1 in points
         ]
         model.no_overlap(model.sequence_var(machines[j]), matrix)
 

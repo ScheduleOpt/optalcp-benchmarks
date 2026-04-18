@@ -1,6 +1,6 @@
 # OptalCP Benchmark Collection
 
-This repository contains benchmarks for the [OptalCP](https://www.optalcp.com) constraint programming solver. Each benchmark includes data, solver implementations (TypeScript and Python), and reference results.
+This repository contains benchmarks for the [OptalCP](https://www.optalcp.com) constraint programming solver. Each benchmark includes data, solver implementations (Python, C#, and TypeScript), and reference results.
 
 Visualizations of the results can be found at [optalcp.com/docs/benchmarks](https://optalcp.com/docs/benchmarks/).
 
@@ -46,6 +46,44 @@ Visualizations of the results can be found at [optalcp.com/docs/benchmarks](http
 
 ## Installation
 
+### Python
+
+Requires Python 3.11+ and [uv](https://docs.astral.sh/uv/).
+
+```sh
+git clone https://github.com/ScheduleOpt/optalcp-benchmarks.git
+cd optalcp-benchmarks
+uv sync
+```
+
+### C#
+
+Requires the [.NET SDK](https://dotnet.microsoft.com/) 9.0 or newer.
+
+The C# preview solver binary is published to ScheduleOpt's GitHub Packages
+NuGet feed, which requires a GitHub personal access token with the
+`read:packages` scope (GitHub Packages does not permit anonymous reads, even
+for public packages). Register the feed once:
+
+```sh
+dotnet nuget add source "https://nuget.pkg.github.com/ScheduleOpt/index.json" \
+    --name ScheduleOpt \
+    --username YOUR_GITHUB_USERNAME \
+    --password YOUR_GITHUB_TOKEN \
+    --store-password-in-clear-text
+```
+
+Then clone and build:
+
+```sh
+git clone https://github.com/ScheduleOpt/optalcp-benchmarks.git
+cd optalcp-benchmarks
+dotnet build -c Release   # Restores OptalCP + preview solver binary and builds every benchmark
+```
+
+`nuget.config` at the repo root already references the ScheduleOpt feed;
+your credentials are consulted when MSBuild restores packages.
+
 ### TypeScript
 
 Requires [Node.js](https://nodejs.org/) 20+ and [git](https://git-scm.com/).
@@ -57,30 +95,25 @@ npm install
 npx tsc
 ```
 
-### Python
-
-Requires Python 3.11+ and [uv](https://docs.astral.sh/uv/).
-
-```sh
-git clone https://github.com/ScheduleOpt/optalcp-benchmarks.git
-cd optalcp-benchmarks
-uv sync
-```
-
-Both installations include the preview version of OptalCP, which can solve all benchmarks. The preview version reports objective values but not individual variable values. Academic and commercial editions with full functionality are available at [optalcp.com](https://www.optalcp.com). Academic licenses are free.
+All three installations include the preview version of OptalCP, which can solve all benchmarks. The preview version reports objective values but not individual variable values. Academic and commercial editions with full functionality are available at [optalcp.com](https://www.optalcp.com). Academic licenses are free.
 
 ## Running a Benchmark
 
 Each benchmark has a subdirectory in `benchmarks/`. For example, to solve jobshop instance `la17`:
 
-**TypeScript:**
-```sh
-node benchmarks/jobshop/jobshop.mjs benchmarks/jobshop/data/la17.txt
-```
-
 **Python:**
 ```sh
 uv run benchmarks/jobshop/jobshop.py benchmarks/jobshop/data/la17.txt
+```
+
+**C#:**
+```sh
+dotnet run --project benchmarks/jobshop/jobshop.csproj -- benchmarks/jobshop/data/la17.txt
+```
+
+**TypeScript:**
+```sh
+node benchmarks/jobshop/jobshop.mjs benchmarks/jobshop/data/la17.txt
 ```
 
 Common options:
@@ -93,7 +126,7 @@ Common options:
 
 All benchmarks accept `--help` for the full list of options.
 
-**Note:** The TypeScript version supports additional features like parallel benchmark runs, result collection, and model export. These features are coming to Python soon. See [USAGE.md](USAGE.md) for details.
+**Note:** The TypeScript version supports additional features like parallel benchmark runs, result collection, and model export. These features are coming to the Python and C# versions soon. See [USAGE.md](USAGE.md) for details.
 
 ## Advanced Usage
 
@@ -110,14 +143,18 @@ See [USAGE.md](USAGE.md) for:
 ```
 benchmarks/<name>/              Benchmark implementations with data and results
               ├── README.md     Problem description and data sources
-              ├── <name>.mts    TypeScript implementation
               ├── <name>.py     Python implementation
+              ├── <name>.cs     C# implementation
+              ├── <name>.csproj C# project file
+              ├── <name>.mts    TypeScript implementation
               ├── data/         Instance files
               ├── results/      Solver results
               └── references/   Known bounds from literature
 
-compare/       Result comparison tool (see compare/README.md)
-solveCPOs/     CP Optimizer wrapper (see solveCPOs/README.md)
+compare/                        Result comparison tool (see compare/README.md)
+solveCPOs/                      CP Optimizer wrapper (see solveCPOs/README.md)
+Directory.Build.props           Shared MSBuild settings for every C# benchmark
+optalcp-benchmarks.sln          Top-level solution file listing all C# projects
 ```
 
 ## License

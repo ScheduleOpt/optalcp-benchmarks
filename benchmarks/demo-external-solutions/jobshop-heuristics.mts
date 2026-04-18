@@ -1,5 +1,6 @@
 import { once } from 'node:events';
 import * as fs from 'node:fs'
+import * as path from 'node:path';
 import * as readline from 'node:readline';
 import * as timersPromises from 'node:timers/promises';
 import * as zlib from 'node:zlib';
@@ -28,8 +29,7 @@ type Data = {
 
 function readData(filename: string): Data {
 
-  const s = filename.split('/')
-  const instance = s[s.length - 1].replace(/\.txt$/, '')
+  const instance = path.basename(filename, '.txt');
 
   let rawData: string|null = null;
   if (filename.endsWith(".gz"))

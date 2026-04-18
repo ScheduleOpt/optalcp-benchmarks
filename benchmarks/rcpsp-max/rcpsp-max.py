@@ -27,7 +27,7 @@ def make_model_name(benchmark_name: str, filename: str) -> str:
     instance = re.sub(r"^data_", "", instance)
     instance = re.sub(r"\.gz$", "", instance)
     instance = re.sub(r"\.json$", "", instance)
-    instance = re.sub(r"\...?$", "", instance)
+    instance = re.sub(r"\....?$", "", instance)
     return f"{benchmark_name}_{instance}"
 
 
@@ -159,11 +159,8 @@ def define_model(filename: str) -> cp.Model:
         model.enforce(model.sum(resources[r]) <= capacity)
 
     # There shouldn't be anything more in the input:
-    try:
-        next(data)
-        raise AssertionError("Unexpected data at end of input")
-    except StopIteration:
-        pass
+    remaining = list(data)
+    assert not remaining, f"Unexpected data at end of input: {remaining}"
 
     # Minimize makespan:
     model.minimize(model.max(ends))

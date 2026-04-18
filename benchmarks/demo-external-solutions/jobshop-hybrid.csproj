@@ -1,0 +1,19 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+  </PropertyGroup>
+  <ItemGroup>
+    <!-- Sibling entry point compiled by jobshop-heuristics.csproj. -->
+    <Compile Remove="jobshop-heuristics.cs" />
+  </ItemGroup>
+  <ItemGroup>
+    <!-- Build the heuristic subprocess alongside the hybrid and copy its
+         binaries next to ours so `dotnet <base>/jobshop-heuristics.dll` works
+         at runtime regardless of which csproj was invoked. -->
+    <ProjectReference Include="jobshop-heuristics.csproj">
+      <OutputItemType>Content</OutputItemType>
+      <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </ProjectReference>
+  </ItemGroup>
+</Project>

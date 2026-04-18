@@ -74,7 +74,7 @@ def make_model_name(filename: str) -> str:
     instance = re.sub(r"^data_", "", instance)
     instance = re.sub(r"\.gz$", "", instance)
     instance = re.sub(r"\.json$", "", instance)
-    instance = re.sub(r"\...?$", "", instance)
+    instance = re.sub(r"\....?$", "", instance)
     return f"permutation-flowshop_{instance}"
 
 
@@ -86,9 +86,7 @@ def add_permutation_constraints(
 ) -> None:
     """Add permutation constraints: all jobs have the same position on all machines."""
     # Position variable for each job (same across all machines):
-    position_vars: list[cp.IntVar] = []
-    for i in range(nb_jobs):
-        position_vars.append(model.int_var(name=f"position{i + 1}"))
+    position_vars = [model.int_var(name=f"position{i + 1}") for i in range(nb_jobs)]
 
     # Create sequence variable for each machine and enforce permutation:
     for j in range(nb_machines):

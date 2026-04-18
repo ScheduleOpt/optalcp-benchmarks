@@ -4,16 +4,16 @@ OptalCP solver can run in parallel with another solver (e.g., hand-written heuri
 
 The implementation is based on the function [`Solver.sendSolution`](https://optalcp.com/docs/api/classes/Solver#sendsolution).
 
-This directory contains a demo of the `Solver.sendSolution` API for the jobshop problem. There are two files (in both TypeScript and Python):
+This directory contains a demo of the `Solver.sendSolution` API for the jobshop problem. There are two files (in Python, C#, and TypeScript):
 
 * `jobshop-heuristics`: a randomized greedy heuristic that generates solutions for the jobshop problem.
 * `jobshop-hybrid`: a script that runs OptalCP and the heuristics in parallel.
 
-**Note:** This is just a demo of the API. The heuristic is simplistic and typically contributes only one solution at the beginning of the search (before OptalCP finds a better one). It is implemented in TypeScript/Python for simplicity. The heuristic can be implemented in any language since communication is via stdin/stdout JSON.
+**Note:** This is just a demo of the API. The heuristic is simplistic and typically contributes only one solution at the beginning of the search (before OptalCP finds a better one). It is implemented in Python/C#/TypeScript for simplicity. The heuristic can be implemented in any language since communication is via stdin/stdout JSON.
 
 **OptalCP editions:** The preview edition of OptalCP (which is free) hides solution values (all variables appear as 'absent'). However, the objective value is valid. This demo works with the preview edition since only the objective value is used. For full exchange of solutions, the academic or commercial edition is needed. The academic edition is free for academia.
 
-**Performance note:** Processing solutions can have high load. The heuristic should only send solutions that improve upon previously sent ones to avoid overloading the communication. For heuristics that generate many solutions, TypeScript is significantly faster than Python. For best performance, consider implementing the heuristics in a compiled language such C++.
+**Performance note:** Processing solutions can have high load. The heuristic should only send solutions that improve upon previously sent ones to avoid overloading the communication. For heuristics that generate many solutions, C# and TypeScript are significantly faster than Python. For best performance, consider implementing the heuristics in a compiled language such C++.
 
 The `jobshop-heuristics` writes the solutions in JSON format to the standard output, one solution per line. The format of each generated JSON message is:
 
@@ -32,6 +32,20 @@ Once OptalCP stops (due to optimality proof or a time limit), `jobshop-hybrid` k
 
 ## How to run the demo
 
+### Python
+
+```sh
+cd optalcp-benchmarks/benchmarks/demo-external-solutions
+uv run jobshop-hybrid.py --nbWorkers 2 ../jobshop/data/taillard/ta80.txt
+```
+
+### C#
+
+```sh
+cd optalcp-benchmarks/benchmarks/demo-external-solutions
+dotnet run --project jobshop-hybrid.csproj -- --nbWorkers 2 ../jobshop/data/taillard/ta80.txt
+```
+
 ### TypeScript
 
 TypeScript files must be compiled to JavaScript before running the demo (using `npx tsc`, see [`../../README.md`](../../README.md)). Then, run the following commands:
@@ -39,13 +53,6 @@ TypeScript files must be compiled to JavaScript before running the demo (using `
 ```sh
 cd optalcp-benchmarks/benchmarks/demo-external-solutions
 node jobshop-hybrid.mjs --nbWorkers 2 ../jobshop/data/taillard/ta80.txt
-```
-
-### Python
-
-```sh
-cd optalcp-benchmarks/benchmarks/demo-external-solutions
-uv run jobshop-hybrid.py --nbWorkers 2 ../jobshop/data/taillard/ta80.txt
 ```
 
 `jobshop-hybrid` accepts the same arguments as all other benchmarks. In the above command, we use only 2 workers.

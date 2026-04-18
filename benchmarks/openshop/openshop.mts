@@ -30,16 +30,10 @@ function defineModel(filename: string): CP.Model {
   const nbJobs = input[idx++];
   const nbMachines = input[idx++];
 
-  // For each machine create an array of operations executed on it.
-  // Initialize all machines by empty arrays:
-  const machines: CP.IntervalVar[][] = [];
-  for (let m = 0; m < nbMachines; m++)
-    machines[m] = [];
-
-  // Similarly for each job create an array of its operations:
-  const jobs: CP.IntervalVar[][] = [];
-  for (let j = 0; j < nbJobs; j++)
-    jobs[j] = [];
+  // For each machine, an array of operations executed on it:
+  const machines: CP.IntervalVar[][] = Array.from({length: nbMachines}, () => []);
+  // For each job, an array of its operations:
+  const jobs: CP.IntervalVar[][] = Array.from({length: nbJobs}, () => []);
 
   // End times of all operations:
   const ends: CP.IntExpr[] = [];

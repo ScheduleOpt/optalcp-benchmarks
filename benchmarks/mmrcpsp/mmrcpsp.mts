@@ -208,12 +208,9 @@ function defineModel(filename: string): CP.Model {
     }
     // Add cumulative pulses for renewable resources:
     for (let r = 0; r < nbResources; r++) {
-      let minC = renewableRequirements[r][0];
-      let maxC = minC;
-      for (let a = 1; a < nbModes[j]; a++) {
-        minC = Math.min(minC, renewableRequirements[r][a]);
-        maxC = Math.max(maxC, renewableRequirements[r][a]);
-      }
+      const reqs = renewableRequirements[r];
+      const minC = Math.min(...reqs);
+      const maxC = Math.max(...reqs);
       if (maxC === 0)
         continue; // Job doesn't use this resource in any mode
       if (minC === maxC) {

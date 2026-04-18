@@ -1,0 +1,9 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+  </PropertyGroup>
+  <ItemGroup>
+    <!-- Sibling entry point compiled by jobshop-hybrid.csproj. -->
+    <Compile Remove="jobshop-hybrid.cs" />
+  </ItemGroup>
+</Project>

@@ -16,8 +16,8 @@ chemical processing.
 
 Due to a lack of benchmark instances, we generate transition times randomly
 using xorshift32 PRNG seeded from the sum of all input values.
-This ensures reproducible results across runs and identical behavior between
-TypeScript and Python implementations.
+This ensures reproducible results across runs and identical behavior across
+the Python, C#, and TypeScript implementations.
 
 Transition times are computed as Euclidean distances between randomly placed
 2D points (one point per job), creating a metric that satisfies the triangle

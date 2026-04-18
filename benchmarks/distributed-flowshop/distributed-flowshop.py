@@ -38,7 +38,7 @@ def make_model_name(benchmark_name: str, filename: str) -> str:
     instance = re.sub(r"^data_", "", instance)
     instance = re.sub(r"\.gz$", "", instance)
     instance = re.sub(r"\.json$", "", instance)
-    instance = re.sub(r"\...?$", "", instance)
+    instance = re.sub(r"\....?$", "", instance)
     return f"{benchmark_name}_{instance}"
 
 
@@ -161,7 +161,7 @@ def define_model(filename: str) -> cp.Model:
 
     # Symmetry breaking: order factories by highest job number assigned
     if symmetry_breaking:
-        max_job_in_f = [model.max(job_numbers[f]) for f in range(nb_factories)]
+        max_job_in_f = [model.max(jn) for jn in job_numbers]
         for f in range(1, nb_factories - 1):
             model.enforce(max_job_in_f[f - 1] < max_job_in_f[f])
 

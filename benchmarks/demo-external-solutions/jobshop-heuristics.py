@@ -13,6 +13,7 @@ import gzip
 import json
 import math
 import random
+import select
 import sys
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -244,9 +245,6 @@ def main() -> None:
     # Best makespan found so far (by this process or received from solver)
     best_makespan: float = math.inf
 
-    # Set up non-blocking stdin reading using select
-    import select
-
     # First run heuristics without any randomization
     best_makespan, _ = heuristics(data, math.inf)
 
@@ -267,8 +265,7 @@ def main() -> None:
 
         # Randomize the preferences
         for job_prefs in data.preferences:
-            for i in range(len(job_prefs)):
-                job_prefs[i] = random.randint(0, max_duration - 1)
+            job_prefs[:] = [random.randint(0, max_duration - 1) for _ in job_prefs]
 
         makespan, _ = heuristics(data, best_makespan)
         best_makespan = min(best_makespan, makespan)

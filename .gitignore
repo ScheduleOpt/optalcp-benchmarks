@@ -18,3 +18,9 @@ ENV/
 *.egg-info/
 .mypy_cache/
 .ruff_cache/
+
+# C# / .NET
+bin/
+obj/
+*.user
+.vs/

@@ -16,7 +16,7 @@ def make_model_name(benchmark_name: str, filename: str) -> str:
     instance = re.sub(r"^data_", "", instance)
     instance = re.sub(r"\.gz$", "", instance)
     instance = re.sub(r"\.json$", "", instance)
-    instance = re.sub(r"\...?$", "", instance)
+    instance = re.sub(r"\....?$", "", instance)
     return f"{benchmark_name}_{instance}"
 
 
@@ -80,12 +80,7 @@ def define_model(filename: str) -> cp.Model:
         # we can break the symmetry by choosing any node and forcing it to be in
         # the first half of the cycle. Let's choose a node with the maximum
         # distance from node 0:
-        max_distance = 0
-        max_distance_node = 0
-        for i in range(1, nb_nodes):
-            if transition_matrix[0][i] > max_distance:
-                max_distance = transition_matrix[0][i]
-                max_distance_node = i
+        max_distance_node = max(range(1, nb_nodes), key=lambda i: transition_matrix[0][i])
         model.enforce(intervals[max_distance_node].end() * 2 <= last.end())
 
     return model

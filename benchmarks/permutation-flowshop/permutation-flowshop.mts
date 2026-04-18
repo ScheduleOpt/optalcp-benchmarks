@@ -78,9 +78,7 @@ function addPermutationConstraints(
   nbMachines: number
 ): void {
   // Position variable for each job (same across all machines):
-  const positionVars: CP.IntVar[] = [];
-  for (let i = 0; i < nbJobs; i++)
-    positionVars.push(model.intVar({ name: `position${i + 1}` }));
+  const positionVars = Array.from({length: nbJobs}, (_, i) => model.intVar({ name: `position${i + 1}` }));
 
   // Create sequence variable for each machine and enforce permutation:
   for (let j = 0; j < nbMachines; j++) {

@@ -115,9 +115,7 @@ function defineModel(filename: string): CP.Model {
     assert(input[idx++] === 0); // Resource requirement
 
   // Prepare arrays for resources:
-  const resources: CP.CumulExpr[][] = [];
-  for (let r = 0; r < nbResources; r++)
-    resources[r] = [];
+  const resources: CP.CumulExpr[][] = Array.from({length: nbResources}, () => []);
 
   // We're going to compute rough UB (maximum end time) for all interval
   // variables:

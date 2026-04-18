@@ -31,7 +31,7 @@ def make_model_name(benchmark_name: str, filename: str) -> str:
     instance = re.sub(r"^data_", "", instance)
     instance = re.sub(r"\.gz$", "", instance)
     instance = re.sub(r"\.json$", "", instance)
-    instance = re.sub(r"\...?$", "", instance)
+    instance = re.sub(r"\....?$", "", instance)
     return f"{benchmark_name}_{instance}"
 
 
@@ -78,8 +78,7 @@ def define_model(filename: str) -> cp.Model:
             )
             sys.exit(1)
 
-    # Compute the maximum distance in the matrix:
-    max_distance = max(transition_matrix[i][j] for i in range(nb_nodes) for j in range(nb_nodes))
+    max_distance = max(d for row in transition_matrix for d in row)
     # The horizon doesn't seem to be needed. But let's use it anyway:
     horizon = max_distance * (nb_nodes + nb_vehicles)
 

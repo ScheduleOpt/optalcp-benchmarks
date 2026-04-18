@@ -58,11 +58,7 @@ function defineModelRCP(filename: string) {
   }
 
   // Create interval variables
-  const jobs: CP.IntervalVar[] = [];
-  for (let j = 0; j < nbRealJobs; j++) {
-    const itv = model.intervalVar({ name: `T${j + 1}` });
-    jobs.push(itv);
-  }
+  const jobs = Array.from({length: nbRealJobs}, (_, j) => model.intervalVar({ name: `T${j + 1}` }));
 
   // Skip dummy source job:
   idx = skipExpected(input, idx, 0); // duration
@@ -187,11 +183,7 @@ function defineModelSM(filename: string) {
   assert(nbRealJobs === nbJobs - 2);
 
   // Create interval variables
-  const jobs: CP.IntervalVar[] = [];
-  for (let j = 0; j < nbRealJobs; j++) {
-    const itv = model.intervalVar({ name: `T${j + 1}` });
-    jobs.push(itv);
-  }
+  const jobs = Array.from({length: nbRealJobs}, (_, j) => model.intervalVar({ name: `T${j + 1}` }));
 
   // Skip dummy source job:
   idx = skipExpected(input, idx, 1); // job ID
