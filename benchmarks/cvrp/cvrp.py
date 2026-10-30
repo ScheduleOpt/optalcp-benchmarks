@@ -177,7 +177,7 @@ def define_model(filename: str) -> cp.Model:
             nb_possible_vehicles = nb_customers - i
             nb_forbidden_vehicles = nb_vehicles - nb_possible_vehicles
             for v in range(nb_forbidden_vehicles):
-                visits[i][v].optional = None
+                model.enforce(~visits[i][v].presence())
 
     if objective == "makespan":
         model.minimize(model.max(end_times))
