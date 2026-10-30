@@ -154,7 +154,7 @@ function defineModel(filename: string): CP.Model {
       const nbPossibleVehicles = nbCustomers - i;
       const nbForbiddenVehicles = nbVehicles - nbPossibleVehicles;
       for (let v = 0; v < nbForbiddenVehicles; v++)
-        visits[i][v].optional = null;
+        model.enforce(visits[i][v].presence().not());
     }
   }
 
