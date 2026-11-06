@@ -134,7 +134,7 @@ def define_model(filename: str) -> cp.Model:
     # The depot will not be part of noOverlap. It is known to be first and last
     # and so it will be handled separately. Therefore node 0 is not part of the matrix:
     nb_nodes = len(nodes)
-    round_func = round if rounding == "round" else math.ceil
+    round_func = (lambda d: math.floor(d + 0.5)) if rounding == "round" else math.ceil
     customer_matrix: list[list[int]] = []
     for i in range(1, nb_nodes):
         row: list[int] = []

@@ -153,7 +153,7 @@ def parse(filename: str, params: ParseParameters | None = None) -> ParseResult:
                     for j in range(nb_nodes):
                         dist_x = nodes[i][0] - nodes[j][0]
                         dist_y = nodes[i][1] - nodes[j][1]
-                        row.append(round(math.sqrt(dist_x * dist_x + dist_y * dist_y)))
+                        row.append(math.floor(math.sqrt(dist_x * dist_x + dist_y * dist_y) + 0.5))
                 elif edge_weight_type == "CEIL_2D":
                     # Euclidean distance, rounded up
                     for j in range(nb_nodes):

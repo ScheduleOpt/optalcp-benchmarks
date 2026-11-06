@@ -9,6 +9,7 @@ See README.md for more details.
 """
 
 import asyncio
+import contextlib
 import gzip
 import json
 import re
@@ -105,7 +106,7 @@ async def main() -> None:
     print("Starting heuristics subprocess...")
     heuristics_process = await asyncio.create_subprocess_exec(
         sys.executable,
-        "jobshop-heuristics.py",
+        str(Path(__file__).with_name("jobshop-heuristics.py")),
         filename,
         stdin=asyncio.subprocess.PIPE,
         stdout=asyncio.subprocess.PIPE,
@@ -160,7 +161,8 @@ async def main() -> None:
         await solver.solve(model, params)
     finally:
         # Kill the heuristics process if still running
-        heuristics_process.kill()
+        with contextlib.suppress(ProcessLookupError):
+            heuristics_process.kill()
         await heuristics_process.wait()
         reader_task.cancel()
         try:

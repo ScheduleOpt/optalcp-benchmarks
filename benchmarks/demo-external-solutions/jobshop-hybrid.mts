@@ -8,6 +8,7 @@ import assert from "node:assert/strict";
 import { spawn } from "node:child_process";
 import * as fs from "node:fs";
 import * as readline from "node:readline";
+import { fileURLToPath } from "node:url";
 import * as zlib from "node:zlib";
 import * as CP from "@scheduleopt/optalcp";
 
@@ -97,7 +98,7 @@ for (const v of model.getIntervalVars()) {
 
 // Launch the heuristic solver as a child subprocess:
 console.log("Starting heuristics subprocess...");
-const heuristics = spawn("node", ["jobshop-heuristics.mjs", filename], { windowsHide: true });
+const heuristics = spawn("node", [fileURLToPath(new URL("jobshop-heuristics.mjs", import.meta.url)), filename], { windowsHide: true });
 heuristics.on("error", (err: unknown) => {
   console.error("Failed to start the heuristics subprocess: ", err);
   process.exit(1);

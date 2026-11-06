@@ -35,6 +35,11 @@ def make_model_name(benchmark_name: str, filename: str) -> str:
     return f"{benchmark_name}_{instance}"
 
 
+def round_half_up(value: float) -> int:
+    """Round like Math.round in TypeScript. Python round() rounds halves to even."""
+    return math.floor(value + 0.5)
+
+
 # Xorshift32 PRNG for reproducible random numbers:
 random_state = 1
 
@@ -99,9 +104,12 @@ def define_model(filename: str) -> cp.Model:
     # Tasks on each machine cannot overlap:
     for j in range(nb_machines):
         # Create transition times from random 2D points (Euclidean distances):
-        points = [(round(random() * max_tt), round(random() * max_tt)) for _ in range(nb_jobs)]
+        points = [
+            (round_half_up(random() * max_tt), round_half_up(random() * max_tt))
+            for _ in range(nb_jobs)
+        ]
         matrix = [
-            [round(math.hypot(x1 - x2, y1 - y2)) for x2, y2 in points]
+            [round_half_up(math.hypot(x1 - x2, y1 - y2)) for x2, y2 in points]
             for x1, y1 in points
         ]
         model.no_overlap(model.sequence_var(machines[j]), matrix)
