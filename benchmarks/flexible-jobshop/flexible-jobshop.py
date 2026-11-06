@@ -91,9 +91,12 @@ def define_model(filename: str) -> cp.Model:
     for m in range(nb_machines):
         model.no_overlap(machines[m])
 
-    # Redundant cumulative: at most nbMachines operations simultaneously
+    # Redundant cumulative: each machine runs at most one operation at a time.
+    # Some instances declare machines that no operation can use, so count only
+    # the used machines:
     if redundant_cumul:
-        model.enforce(model.sum(all_machines) <= nb_machines)
+        nb_used_machines = sum(1 for m in machines if m)
+        model.enforce(model.sum(all_machines) <= nb_used_machines)
 
     # Minimize makespan (completion time of all jobs):
     model.minimize(model.max(ends))

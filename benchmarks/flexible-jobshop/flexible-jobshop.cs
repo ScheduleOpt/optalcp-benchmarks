@@ -97,9 +97,14 @@ static Model DefineModel(string filename, bool redundantCumul)
     for (int m = 0; m < nbMachines; m++)
         model.NoOverlap(machines[m]);
 
-    // Redundant cumulative: at most nbMachines operations simultaneously
+    // Redundant cumulative: each machine runs at most one operation at a time.
+    // Some instances declare machines that no operation can use, so count only
+    // the used machines:
     if (redundantCumul)
-        model.Enforce(model.Sum(allMachines) <= nbMachines);
+    {
+        int nbUsedMachines = machines.Count(m => m.Count > 0);
+        model.Enforce(model.Sum(allMachines) <= nbUsedMachines);
+    }
 
     // Minimize makespan (completion time of all jobs):
     model.Minimize(model.Max(ends));

@@ -86,9 +86,13 @@ function defineModel(filename: string): CP.Model {
   for (let m = 0; m < nbMachines; m++)
     model.noOverlap(machines[m]);
 
-  // Redundant cumulative: at most nbMachines operations simultaneously
-  if (redundantCumul)
-    model.sum(allMachines).le(nbMachines);
+  // Redundant cumulative: each machine runs at most one operation at a time.
+  // Some instances declare machines that no operation can use, so count only
+  // the used machines:
+  if (redundantCumul) {
+    const nbUsedMachines = machines.filter(m => m.length > 0).length;
+    model.sum(allMachines).le(nbUsedMachines);
+  }
 
   // Minimize makespan (completion time of all jobs):
   model.minimize(model.max(ends));
