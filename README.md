@@ -86,12 +86,12 @@ your credentials are consulted when MSBuild restores packages.
 
 ### TypeScript
 
-Requires [Node.js](https://nodejs.org/) 20+ and [git](https://git-scm.com/).
+Requires [Node.js](https://nodejs.org/) 22+ and [git](https://git-scm.com/).
 
 ```sh
 git clone https://github.com/ScheduleOpt/optalcp-benchmarks.git
 cd optalcp-benchmarks
-npm install
+npm install --allow-git=all
 npx tsc
 ```
 

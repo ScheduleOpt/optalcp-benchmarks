@@ -30,7 +30,7 @@ function makeModelName(benchmarkName: string, filename: string): string {
     .replace(/^data_/, "")
     .replace(/\.gz$/, "")
     .replace(/\.json$/, "")
-    .replace(/\....?$/, "");
+    .replace(/\....?.?$/, "");
   return `${benchmarkName}_${instance}`;
 }
 

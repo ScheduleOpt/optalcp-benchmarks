@@ -24,7 +24,7 @@ function makeModelName(filename: string): string {
     .replace(/^data_/, "")
     .replace(/\.gz$/, "")
     .replace(/\.json$/, "")
-    .replace(/\....?$/, "");
+    .replace(/\....?.?$/, "");
   return `jobshop_${instance}`;
 }
 

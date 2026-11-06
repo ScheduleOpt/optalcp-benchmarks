@@ -24,3 +24,6 @@ bin/
 obj/
 *.user
 .vs/
+
+# Temporary benchmark results
+**/tmp/

@@ -28,7 +28,7 @@ static string MakeModelName(string filename, int nbOperators)
     instance = Regex.Replace(instance, @"^data_", "");
     instance = Regex.Replace(instance, @"\.gz$", "");
     instance = Regex.Replace(instance, @"\.json$", "");
-    instance = Regex.Replace(instance, @"\....?$", "");
+    instance = Regex.Replace(instance, @"\....?.?$", "");
     return $"jobshop-operators_{instance}_{nbOperators}opers";
 }
 

@@ -4,7 +4,7 @@ version = "0.1.0"
 description = "Benchmark collection for the OptalCP constraint programming solver"
 requires-python = ">=3.11"
 dependencies = [
-    "optalcp-bin-preview @ git+https://github.com/ScheduleOpt/optalcp-py-bin-preview@latest",
+    "optalcp-bin-preview @ git+https://github.com/ScheduleOpt/optalcp-py-bin-preview@v2026.11.0",
 ]
 
 [project.optional-dependencies]

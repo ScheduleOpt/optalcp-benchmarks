@@ -72,7 +72,7 @@ def make_model_name(filename: str) -> str:
     instance = re.sub(r"^data_", "", instance)
     instance = re.sub(r"\.gz$", "", instance)
     instance = re.sub(r"\.json$", "", instance)
-    instance = re.sub(r"\....?$", "", instance)
+    instance = re.sub(r"\....?.?$", "", instance)
     return f"non-permutation-flowshop_{instance}"
 
 

@@ -20,7 +20,7 @@ static string MakeModelName(string benchmarkName, string filename)
     instance = Regex.Replace(instance, @"^data_", "");
     instance = Regex.Replace(instance, @"\.gz$", "");
     instance = Regex.Replace(instance, @"\.json$", "");
-    instance = Regex.Replace(instance, @"\....?$", "");
+    instance = Regex.Replace(instance, @"\....?.?$", "");
     return $"{benchmarkName}_{instance}";
 }
 

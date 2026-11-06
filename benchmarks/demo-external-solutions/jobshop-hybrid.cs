@@ -33,7 +33,7 @@ static string MakeModelName(string filename)
     instance = Regex.Replace(instance, @"^data_", "");
     instance = Regex.Replace(instance, @"\.gz$", "");
     instance = Regex.Replace(instance, @"\.json$", "");
-    instance = Regex.Replace(instance, @"\....?$", "");
+    instance = Regex.Replace(instance, @"\....?.?$", "");
     return $"jobshop_{instance}";
 }
 

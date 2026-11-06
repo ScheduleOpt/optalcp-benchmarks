@@ -22,7 +22,7 @@
     `OptalCP.Bin.Academic` for full functionality.
   -->
   <ItemGroup>
-    <PackageReference Include="OptalCP.Bin.Preview" Version="2026.3.0" />
+    <PackageReference Include="OptalCP.Bin.Preview" Version="2026.11.0" />
   </ItemGroup>
 
 </Project>

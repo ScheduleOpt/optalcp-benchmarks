@@ -15,7 +15,7 @@ The generated pages include:
 
 ## Prerequisites
 
-Requires [Node.js](https://nodejs.org/) 20+.
+Requires [Node.js](https://nodejs.org/) 22+.
 
 This is a separate npm project from the main benchmark repository.
 
@@ -23,7 +23,7 @@ This is a separate npm project from the main benchmark repository.
 
 ```sh
 cd compare
-npm install
+npm install --allow-git=all
 npx tsc
 npx webpack
 ```
